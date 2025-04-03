@@ -113,6 +113,7 @@ public:
     mode()->addItem(
       new BlendModeItem(Strings::layer_properties_subtract(), doc::BlendMode::SUBTRACT));
     mode()->addItem(new BlendModeItem(Strings::layer_properties_divide(), doc::BlendMode::DIVIDE));
+    mode()->addItem(new BlendModeItem(Strings::layer_properties_invert(), doc::BlendMode::INVERT));
     mode()->addItem(new SeparatorInView);
     mode()->addItem(new BlendModeItem(Strings::layer_properties_hue(), doc::BlendMode::HSL_HUE));
     mode()->addItem(

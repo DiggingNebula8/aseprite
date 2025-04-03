@@ -49,6 +49,7 @@ enum class BlendMode : int {
   ADDITION,
   SUBTRACT,
   DIVIDE,
+  INVERT,
 };
 
 }} // namespace app::script
@@ -93,6 +94,7 @@ inline os::BlendMode convert_to(const app::script::BlendMode& from)
     // Use the default value for undefined conversions
     case app::script::BlendMode::SUBTRACT:
     case app::script::BlendMode::DIVIDE:      return os::BlendMode::SrcOver;
+    case app::script::BlendMode::INVERT:      return os::BlendMode::SrcOver;
   }
 }
 
@@ -159,6 +161,7 @@ inline doc::BlendMode convert_to(const app::script::BlendMode& from)
     case app::script::BlendMode::ADDITION:    return doc::BlendMode::ADDITION;
     case app::script::BlendMode::SUBTRACT:    return doc::BlendMode::SUBTRACT;
     case app::script::BlendMode::DIVIDE:      return doc::BlendMode::DIVIDE;
+    case app::script::BlendMode::INVERT:      return doc::BlendMode::INVERT;
     // Use the default value for undefined conversions
     case app::script::BlendMode::CLEAR:
     case app::script::BlendMode::DST:
@@ -199,6 +202,7 @@ inline app::script::BlendMode convert_to(const doc::BlendMode& from)
     case doc::BlendMode::ADDITION:       return app::script::BlendMode::ADDITION;
     case doc::BlendMode::SUBTRACT:       return app::script::BlendMode::SUBTRACT;
     case doc::BlendMode::DIVIDE:         return app::script::BlendMode::DIVIDE;
+    case doc::BlendMode::INVERT:         return app::script::BlendMode::INVERT;
   }
 }
 

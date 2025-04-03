@@ -41,7 +41,8 @@ enum class BlendMode {
   HSL_LUMINOSITY = 15,
   ADDITION = 16,
   SUBTRACT = 17,
-  DIVIDE = 18
+  DIVIDE = 18,
+  INVERT = 19
 };
 
 std::string blend_mode_to_string(BlendMode blendMode);

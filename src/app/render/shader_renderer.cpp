@@ -77,6 +77,7 @@ inline SkBlendMode to_skia(const doc::BlendMode bm)
     case doc::BlendMode::ADDITION:       return SkBlendMode::kPlus;
     case doc::BlendMode::SUBTRACT:       break; // TODO
     case doc::BlendMode::DIVIDE:         break;         // TODO
+    case doc::BlendMode::INVERT:         break; 
   }
   return SkBlendMode::kSrc;
 }

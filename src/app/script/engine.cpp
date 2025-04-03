@@ -310,6 +310,7 @@ Engine::Engine() : L(luaL_newstate()), m_delegate(nullptr), m_printLastResult(fa
   setfield_integer(L, "ADDITION", app::script::BlendMode::ADDITION);
   setfield_integer(L, "SUBTRACT", app::script::BlendMode::SUBTRACT);
   setfield_integer(L, "DIVIDE", app::script::BlendMode::DIVIDE);
+  setfield_integer(L, "INVERT", app::script::BlendMode::INVERT);
   // Backward compatibility
   setfield_integer(L, "NORMAL", app::script::BlendMode::SRC_OVER);
   setfield_integer(L, "HSL_HUE", app::script::BlendMode::HUE);
