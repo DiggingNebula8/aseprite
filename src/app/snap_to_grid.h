@@ -10,6 +10,7 @@
 #pragma once
 
 #include "gfx/fwd.h"
+#include "app/pref/preferences.h"
 
 namespace app {
 
@@ -21,7 +22,9 @@ enum class PreferSnapTo {
   CeilGrid,
 };
 
-gfx::Point snap_to_grid(const gfx::Rect& grid, const gfx::Point& point, const PreferSnapTo prefer);
+gfx::Point snap_to_grid(const gfx::Rect& grid, const gfx::Point& point,
+                        const PreferSnapTo prefer,
+                        const gen::GridType gridType = gen::GridType::RECTANGULAR);
 
 } // namespace app
 

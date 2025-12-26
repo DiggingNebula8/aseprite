@@ -1207,11 +1207,11 @@ void Editor::drawGrid(Graphics* g,
   const bool isIsometric = (m_docPref.grid.type() == gen::GridType::ISOMETRIC);
 
   if (isIsometric) {
-    // Draw isometric/triangular grid pattern
-    // Consists of 3 sets of parallel lines forming equilateral triangles:
-    // 1. Horizontal lines
-    // 2. Diagonal lines going up-right (/) with slope = -2*tileH/tileW
-    // 3. Diagonal lines going down-right (\) with slope = +2*tileH/tileW
+    // Draw isometric grid pattern
+    // 3 sets of lines:
+    // 1. Vertical lines
+    // 2. Diagonal lines going up-right (/) 
+    // 3. Diagonal lines going down-right (\)
 
     const double tileW = gridF.w;
     const double tileH = gridF.h;
@@ -1233,10 +1233,10 @@ void Editor::drawGrid(Graphics* g,
     while (baseX + tileW < x1) baseX += tileW;
     while (baseY + tileH < y1) baseY += tileH;
 
-    // 1. Draw horizontal lines
-    for (double y = baseY; y <= y2; y += tileH) {
-      if (y >= y1) {
-        g->drawHLine(grid_color, x1, static_cast<int>(y), spriteBounds.w);
+    // 1. Draw vertical lines (spaced at dx = tileW/2 to align with diagonal intersections)
+    for (double x = baseX; x <= x2; x += dx) {
+      if (x >= x1) {
+        g->drawVLine(grid_color, static_cast<int>(x), y1, spriteBounds.h);
       }
     }
 
@@ -1266,7 +1266,7 @@ void Editor::drawGrid(Graphics* g,
       }
     }
 
-    // 3. Draw \ lines (going from upper-left to lower-right)
+    // 3. Draw \\ lines (going from upper-left to lower-right)
     // Line equation: as we go right by dx, we go down by dy
     // These lines pass through points (baseX + n*tileW, baseY) for integer n
     for (double lineX = baseX - maxExtent; lineX <= x2 + maxExtent; lineX += tileW) {

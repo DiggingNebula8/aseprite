@@ -4,6 +4,12 @@
 <window id="grid_settings" text="@.title">
   <grid columns="4">
 
+    <label text="@.type" for="grid_type" />
+    <combobox id="grid_type" cell_hspan="3">
+      <listitem text="@.type_rectangular" value="0" />
+      <listitem text="@.type_isometric" value="1" />
+    </combobox>
+
     <label text="@.x" for="grid_x" />
     <expr id="grid_x" text="" magnet="true" />
 
@@ -15,6 +21,9 @@
 
     <label text="@.height" for="grid_h" />
     <expr id="grid_h" text="" />
+
+    <label text="@.color" for="grid_color" />
+    <colorpicker id="grid_color" cell_hspan="3" />
 
     <separator horizontal="true" cell_hspan="4" />
 

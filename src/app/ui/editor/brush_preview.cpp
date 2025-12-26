@@ -191,7 +191,8 @@ void BrushPreview::show(const gfx::Point& screenPos)
   gfx::Point spritePos = m_editor->screenToEditor(screenPos);
   if (pref.cursor.snapToGrid() && m_editor->docPref().grid.snap()) {
     spritePos =
-      snap_to_grid(m_editor->docPref().grid.bounds(), spritePos, PreferSnapTo::ClosestGridVertex) +
+      snap_to_grid(m_editor->docPref().grid.bounds(), spritePos, PreferSnapTo::ClosestGridVertex,
+                   m_editor->docPref().grid.type()) +
       gfx::Point(brushBounds.w / 2, brushBounds.h / 2);
   }
 

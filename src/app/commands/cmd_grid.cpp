@@ -104,11 +104,16 @@ void GridSettingsCommand::onExecute(Context* context)
 
   Site site = context->activeSite();
   Rect bounds = site.gridBounds();
+  auto& docPref = Preferences::instance().document(site.document());
 
+  // Load current values
+  window.gridType()->setSelectedItemIndex(int(docPref.grid.type()));
   window.gridX()->setTextf("%d", bounds.x);
   window.gridY()->setTextf("%d", bounds.y);
   window.gridW()->setTextf("%d", bounds.w);
   window.gridH()->setTextf("%d", bounds.h);
+  window.gridColor()->setColor(docPref.grid.color());
+
   window.gridW()->Leave.connect([&window] {
     // Prevent entering a width lesser than 1
     if (window.gridW()->textInt() <= 0)
@@ -134,7 +139,10 @@ void GridSettingsCommand::onExecute(Context* context)
     tx(new cmd::SetGridBounds(site.sprite(), bounds));
     tx.commit();
 
-    auto& docPref = Preferences::instance().document(site.document());
+    // Save grid type and color
+    docPref.grid.type(static_cast<app::gen::GridType>(window.gridType()->getSelectedItemIndex()));
+    docPref.grid.color(window.gridColor()->getColor());
+
     if (!docPref.show.grid()) // Make grid visible
       docPref.show.grid(true);
   }
