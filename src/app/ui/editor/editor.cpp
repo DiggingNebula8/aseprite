@@ -1203,21 +1203,110 @@ void Editor::drawGrid(Graphics* g,
   grid_color =
     gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), alpha);
 
-  // Draw horizontal lines
-  int x1 = spriteBounds.x;
-  int y1 = gridF.y;
-  int x2 = spriteBounds.x + spriteBounds.w;
-  int y2 = spriteBounds.y + spriteBounds.h;
+  // Check grid type for isometric rendering
+  const bool isIsometric = (m_docPref.grid.type() == gen::GridType::ISOMETRIC);
 
-  for (double c = y1; c <= y2; c += gridF.h)
-    g->drawHLine(grid_color, x1, c, spriteBounds.w);
+  if (isIsometric) {
+    // Draw isometric/triangular grid pattern
+    // Consists of 3 sets of parallel lines forming equilateral triangles:
+    // 1. Horizontal lines
+    // 2. Diagonal lines going up-right (/) with slope = -2*tileH/tileW
+    // 3. Diagonal lines going down-right (\) with slope = +2*tileH/tileW
 
-  // Draw vertical lines
-  x1 = gridF.x;
-  y1 = spriteBounds.y;
+    const double tileW = gridF.w;
+    const double tileH = gridF.h;
 
-  for (double c = x1; c <= x2; c += gridF.w)
-    g->drawVLine(grid_color, c, y1, spriteBounds.h);
+    const double x1 = spriteBounds.x;
+    const double y1 = spriteBounds.y;
+    const double x2 = spriteBounds.x + spriteBounds.w;
+    const double y2 = spriteBounds.y + spriteBounds.h;
+
+    // The slope for diagonal lines: for every tileW/2 horizontal, tileH vertical
+    const double dx = tileW / 2.0;  // horizontal step per vertical step
+    const double dy = tileH;         // vertical step
+
+    // Find grid origin aligned to visible area
+    double baseX = gridF.x;
+    double baseY = gridF.y;
+    while (baseX > x1) baseX -= tileW;
+    while (baseY > y1) baseY -= tileH;
+    while (baseX + tileW < x1) baseX += tileW;
+    while (baseY + tileH < y1) baseY += tileH;
+
+    // 1. Draw horizontal lines
+    for (double y = baseY; y <= y2; y += tileH) {
+      if (y >= y1) {
+        g->drawHLine(grid_color, x1, static_cast<int>(y), spriteBounds.w);
+      }
+    }
+
+    // Calculate how far diagonals can extend
+    const double maxExtent = (x2 - x1) + (y2 - y1) * (dx / dy);
+
+    // 2. Draw / lines (going from lower-left to upper-right)
+    // Line equation: as we go right by dx, we go up by dy
+    // These lines pass through points (baseX + n*tileW, baseY) for integer n
+    for (double lineX = baseX - maxExtent; lineX <= x2 + maxExtent; lineX += tileW) {
+      // This / line passes through (lineX, baseY)
+      // Calculate intersection with canvas edges
+      
+      // At y = y2 (bottom): x = lineX - (y2 - baseY) * dx / dy
+      double bottomX = lineX - (y2 - baseY) * dx / dy;
+      double bottomY = y2;
+      
+      // At y = y1 (top): x = lineX + (baseY - y1) * dx / dy
+      double topX = lineX + (baseY - y1) * dx / dy;
+      double topY = y1;
+      
+      // Only draw if line intersects visible area
+      if (topX >= x1 - tileW && bottomX <= x2 + tileW) {
+        g->drawLine(grid_color, 
+                    gfx::Point(static_cast<int>(bottomX), static_cast<int>(bottomY)),
+                    gfx::Point(static_cast<int>(topX), static_cast<int>(topY)));
+      }
+    }
+
+    // 3. Draw \ lines (going from upper-left to lower-right)
+    // Line equation: as we go right by dx, we go down by dy
+    // These lines pass through points (baseX + n*tileW, baseY) for integer n
+    for (double lineX = baseX - maxExtent; lineX <= x2 + maxExtent; lineX += tileW) {
+      // This \ line passes through (lineX, baseY)
+      // Calculate intersection with canvas edges
+      
+      // At y = y1 (top): x = lineX - (baseY - y1) * dx / dy
+      double topX = lineX - (baseY - y1) * dx / dy;
+      double topY = y1;
+      
+      // At y = y2 (bottom): x = lineX + (y2 - baseY) * dx / dy
+      double bottomX = lineX + (y2 - baseY) * dx / dy;
+      double bottomY = y2;
+      
+      // Only draw if line intersects visible area
+      if (bottomX >= x1 - tileW && topX <= x2 + tileW) {
+        g->drawLine(grid_color,
+                    gfx::Point(static_cast<int>(topX), static_cast<int>(topY)),
+                    gfx::Point(static_cast<int>(bottomX), static_cast<int>(bottomY)));
+      }
+    }
+  }
+  else {
+    // Draw rectangular grid (original implementation)
+    // Draw horizontal lines
+    int x1 = spriteBounds.x;
+    int y1 = gridF.y;
+    int x2 = spriteBounds.x + spriteBounds.w;
+    int y2 = spriteBounds.y + spriteBounds.h;
+
+    for (double c = y1; c <= y2; c += gridF.h)
+      g->drawHLine(grid_color, x1, c, spriteBounds.w);
+
+    // Draw vertical lines
+    x1 = gridF.x;
+    y1 = spriteBounds.y;
+
+    for (double c = x1; c <= x2; c += gridF.w)
+      g->drawVLine(grid_color, c, y1, spriteBounds.h);
+  }
 }
 
 void Editor::drawSlices(ui::Graphics* g)

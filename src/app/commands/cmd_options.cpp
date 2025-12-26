@@ -887,6 +887,7 @@ public:
     }
 
     m_curPref->show.grid(gridVisible()->isSelected());
+    m_curPref->grid.type(static_cast<app::gen::GridType>(gridType()->getSelectedItemIndex()));
     m_curPref->grid.bounds(gridBounds());
     m_curPref->grid.color(gridColor()->getColor());
     m_curPref->grid.opacity(gridOpacity()->getValue());
@@ -1572,6 +1573,7 @@ private:
     }
 
     gridVisible()->setSelected(m_curPref->show.grid());
+    gridType()->setSelectedItemIndex(int(m_curPref->grid.type()));
     gridX()->setTextf("%d", m_curPref->grid.bounds().x);
     gridY()->setTextf("%d", m_curPref->grid.bounds().y);
     gridW()->setTextf("%d", m_curPref->grid.bounds().w);
@@ -1616,6 +1618,7 @@ private:
     // Reset global preferences (use default values specified in pref.xml)
     if (m_curPref == &m_globPref) {
       gridVisible()->setSelected(pref.show.grid.defaultValue());
+      gridType()->setSelectedItemIndex(int(pref.grid.type.defaultValue()));
       gridX()->setTextf("%d", pref.grid.bounds.defaultValue().x);
       gridY()->setTextf("%d", pref.grid.bounds.defaultValue().y);
       gridW()->setTextf("%d", pref.grid.bounds.defaultValue().w);
@@ -1633,6 +1636,7 @@ private:
     // Reset document preferences with global settings
     else {
       gridVisible()->setSelected(pref.show.grid());
+      gridType()->setSelectedItemIndex(int(pref.grid.type()));
       gridX()->setTextf("%d", pref.grid.bounds().x);
       gridY()->setTextf("%d", pref.grid.bounds().y);
       gridW()->setTextf("%d", pref.grid.bounds().w);

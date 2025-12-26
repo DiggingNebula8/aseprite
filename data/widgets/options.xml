@@ -391,6 +391,13 @@
           </hbox>
 
           <grid columns="5">
+            <label text="@.grid_type" for="grid_type" />
+            <combobox id="grid_type" cell_hspan="3">
+              <listitem text="@.grid_type_rectangular" value="0" />
+              <listitem text="@.grid_type_isometric" value="1" />
+            </combobox>
+            <hbox />
+
             <label text="@.grid_x" for="grid_x" />
             <expr id="grid_x" text="" />
             <label text="@.grid_y" for="grid_y" />

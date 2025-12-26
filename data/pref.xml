@@ -146,6 +146,10 @@
       <value id="KEEP_AS_IS" value="1" />
       <value id="RAW_IMAGE" value="2" />
     </enum>
+    <enum id="GridType">
+      <value id="RECTANGULAR" value="0" />
+      <value id="ISOMETRIC" value="1" />
+    </enum>
   </types>
 
   <global>
@@ -528,6 +532,7 @@
     </section>
     <section id="grid" canforce="true">
       <option id="snap" type="bool" default="false" />
+      <option id="type" type="GridType" default="GridType::RECTANGULAR" />
       <option id="bounds" type="gfx::Rect" default="doc::Sprite::DefaultGridBounds()" />
       <option id="color" type="app::Color" default="app::Color::fromRgb(0, 0, 255)" />
       <option id="opacity" type="int" default="160" />
