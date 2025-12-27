@@ -1308,11 +1308,10 @@ void Editor::drawGrid(Graphics* g,
     // Vertical lines occur at X = originX + k * halfW for integer k
     constexpr bool kShowVerticalLines = true;
     if (kShowVerticalLines) {
-      // TODO: Add vertical line opacity as a separate preference in grid settings.
-      // For now, use a fixed subtle opacity value for vertical guide lines.
-      constexpr int kVerticalLineOpacity = 30;
+      // Vertical line opacity from grid settings (0-255)
+      const int verticalAlpha = m_docPref.grid.isometricVerticalOpacity();
       gfx::Color vertical_color =
-        gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), kVerticalLineOpacity);
+        gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), verticalAlpha);
 
       int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - 1;
       int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + 1;
@@ -1325,7 +1324,7 @@ void Editor::drawGrid(Graphics* g,
     }
   }
   else {
-    // Draw rectangular grid (original implementation)
+    // Draw rectangular grid
     // Draw horizontal lines
     int x1 = spriteBounds.x;
     int y1 = gridF.y;

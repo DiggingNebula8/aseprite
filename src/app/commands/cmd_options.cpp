@@ -892,6 +892,7 @@ public:
     m_curPref->grid.color(gridColor()->getColor());
     m_curPref->grid.opacity(gridOpacity()->getValue());
     m_curPref->grid.autoOpacity(gridAutoOpacity()->isSelected());
+    m_curPref->grid.isometricVerticalOpacity(isoVerticalOpacity()->getValue());
 
     m_curPref->show.pixelGrid(pixelGridVisible()->isSelected());
     m_curPref->pixelGrid.color(pixelGridColor()->getColor());
@@ -1645,6 +1646,7 @@ private:
       gridColor()->setColor(pref.grid.color());
       gridOpacity()->setValue(pref.grid.opacity());
       gridAutoOpacity()->setSelected(pref.grid.autoOpacity());
+      isoVerticalOpacity()->setValue(pref.grid.isometricVerticalOpacity());
 
       pixelGridVisible()->setSelected(pref.show.pixelGrid());
       pixelGridColor()->setColor(pref.pixelGrid.color());

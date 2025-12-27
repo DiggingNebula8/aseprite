@@ -537,6 +537,7 @@
       <option id="color" type="app::Color" default="app::Color::fromRgb(0, 0, 255)" />
       <option id="opacity" type="int" default="160" />
       <option id="auto_opacity" type="bool" default="true" />
+      <option id="isometric_vertical_opacity" type="int" default="30" />
     </section>
     <section id="pixel_grid" canforce="true">
       <option id="color" type="app::Color" default="app::Color::fromRgb(200, 200, 200)" />

@@ -417,6 +417,10 @@
             <label text="@.grid_opacity" for="grid_opacity" />
             <slider id="grid_opacity" cell_hspan="3" min="1" max="255" width="128" />
             <check id="grid_auto_opacity" text="@.grid_auto" />
+
+            <label id="iso_vertical_opacity_label" text="@.grid_iso_vertical_opacity" for="iso_vertical_opacity" />
+            <slider id="iso_vertical_opacity" cell_hspan="3" min="0" max="255" width="128" />
+            <hbox />
           </grid>
 
           <hbox>

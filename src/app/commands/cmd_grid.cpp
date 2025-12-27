@@ -115,6 +115,7 @@ void GridSettingsCommand::onExecute(Context* context)
   window.gridColor()->setColor(docPref.grid.color());
   window.gridOpacity()->setValue(docPref.grid.opacity());
   window.gridAutoOpacity()->setSelected(docPref.grid.autoOpacity());
+  window.verticalOpacity()->setValue(docPref.grid.isometricVerticalOpacity());
 
   // Update opacity slider enabled state based on auto checkbox
   auto updateOpacityState = [&window] {
@@ -122,6 +123,16 @@ void GridSettingsCommand::onExecute(Context* context)
   };
   updateOpacityState();
   window.gridAutoOpacity()->Click.connect(updateOpacityState);
+
+  // Show/hide vertical opacity based on grid type
+  auto updateVerticalOpacityVisibility = [&window] {
+    bool isIsometric = window.gridType()->getSelectedItemIndex() == int(app::gen::GridType::ISOMETRIC);
+    window.verticalOpacityLabel()->setVisible(isIsometric);
+    window.verticalOpacity()->setVisible(isIsometric);
+    window.layout();
+  };
+  updateVerticalOpacityVisibility();
+  window.gridType()->Change.connect(updateVerticalOpacityVisibility);
 
   window.gridW()->Leave.connect([&window] {
     // Prevent entering a width lesser than 1
@@ -157,11 +168,12 @@ void GridSettingsCommand::onExecute(Context* context)
     tx(new cmd::SetGridBounds(site.sprite(), bounds));
     tx.commit();
 
-    // Save grid type, color, and opacity
+    // Save grid type, color, opacity, and isometric settings
     docPref.grid.type(static_cast<app::gen::GridType>(window.gridType()->getSelectedItemIndex()));
     docPref.grid.color(window.gridColor()->getColor());
     docPref.grid.opacity(window.gridOpacity()->getValue());
     docPref.grid.autoOpacity(window.gridAutoOpacity()->isSelected());
+    docPref.grid.isometricVerticalOpacity(window.verticalOpacity()->getValue());
 
     if (!docPref.show.grid()) // Make grid visible
       docPref.show.grid(true);

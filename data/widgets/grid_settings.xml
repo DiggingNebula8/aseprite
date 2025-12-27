@@ -29,6 +29,9 @@
     <slider id="grid_opacity" min="1" max="255" width="80" />
     <check id="grid_auto_opacity" text="@.auto_opacity" cell_hspan="2" />
 
+    <label id="vertical_opacity_label" text="@.vertical_opacity" for="vertical_opacity" />
+    <slider id="vertical_opacity" min="0" max="255" width="80" cell_hspan="3" />
+
     <separator horizontal="true" cell_hspan="4" />
 
     <box horizontal="true" homogeneous="true" cell_hspan="4" cell_align="right">
