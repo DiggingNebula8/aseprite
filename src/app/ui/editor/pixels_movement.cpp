@@ -414,10 +414,11 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
 
       if (!tilesModeOn && (moveModifier & SnapToGridMovement) == SnapToGridMovement) {
         // Snap the x1,y1 point to the grid.
-        gfx::PointF gridOffset(snap_to_grid(m_site.gridBounds(),
-                                            gfx::Point(bounds.origin()),
-                                            PreferSnapTo::ClosestGridVertex,
-                                            Preferences::instance().document(m_document).grid.type()));
+        gfx::PointF gridOffset(
+          snap_to_grid(m_site.gridBounds(),
+                       gfx::Point(bounds.origin()),
+                       PreferSnapTo::ClosestGridVertex,
+                       Preferences::instance().document(m_document).grid.type()));
 
         // Now we calculate the difference from x1,y1 point and we can
         // use it to adjust all coordinates (x1, y1, x2, y2).
@@ -533,10 +534,14 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
         b.x = b.x - (a.x <= b.x ? 1 : 0);
         b.y = b.y - (a.y <= b.y ? 1 : 0);
         gfx::Rect gridBounds = m_site.gridBounds();
-        a = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(a), PreferSnapTo::BoxOrigin,
-                                      Preferences::instance().document(m_document).grid.type()));
-        b = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(b), PreferSnapTo::BoxEnd,
-                                      Preferences::instance().document(m_document).grid.type()));
+        a = gfx::PointF(snap_to_grid(gridBounds,
+                                     gfx::Point(a),
+                                     PreferSnapTo::BoxOrigin,
+                                     Preferences::instance().document(m_document).grid.type()));
+        b = gfx::PointF(snap_to_grid(gridBounds,
+                                     gfx::Point(b),
+                                     PreferSnapTo::BoxEnd,
+                                     Preferences::instance().document(m_document).grid.type()));
       }
 
       // Do not use "gfx::Rect(a, b)" here because if a > b we want to

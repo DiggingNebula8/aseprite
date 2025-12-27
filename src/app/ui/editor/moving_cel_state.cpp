@@ -17,8 +17,8 @@
 #include "app/context_access.h"
 #include "app/doc_api.h"
 #include "app/doc_range.h"
-#include "app/snap_to_grid.h"
 #include "app/pref/preferences.h"
+#include "app/snap_to_grid.h"
 #include "app/tx.h"
 #include "app/ui/editor/editor.h"
 #include "app/ui/editor/editor_customization_delegate.h"
@@ -423,9 +423,10 @@ void MovingCelState::snapBoundsToGrid(gfx::RectF& celBounds) const
     celBounds.h = std::max(gridBounds.h, gridOffset.y);
   }
   else if (m_moved) {
-    gfx::PointF gridOffset(
-      snap_to_grid(displaceGrid, gfx::Point(origin), PreferSnapTo::ClosestGridVertex,
-                   m_editor->docPref().grid.type()));
+    gfx::PointF gridOffset(snap_to_grid(displaceGrid,
+                                        gfx::Point(origin),
+                                        PreferSnapTo::ClosestGridVertex,
+                                        m_editor->docPref().grid.type()));
 
     celBounds.setOrigin(gridOffset);
   }

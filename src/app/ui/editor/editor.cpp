@@ -1310,8 +1310,10 @@ void Editor::drawGrid(Graphics* g,
     if (kShowVerticalLines) {
       // Vertical line opacity from grid settings (0-255)
       const int verticalAlpha = m_docPref.grid.isometricVerticalOpacity();
-      gfx::Color vertical_color =
-        gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), verticalAlpha);
+      gfx::Color vertical_color = gfx::rgba(gfx::getr(grid_color),
+                                            gfx::getg(grid_color),
+                                            gfx::getb(grid_color),
+                                            verticalAlpha);
 
       int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - 1;
       int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + 1;
@@ -3013,8 +3015,10 @@ void Editor::pasteImage(const Image* image, const Mask* mask, const gfx::Point* 
   // TODO should we move this to PixelsMovement or MovingPixelsState?
   if (site.tilemapMode() == TilemapMode::Tiles) {
     gfx::Rect gridBounds = site.gridBounds();
-    gfx::Point pt = snap_to_grid(gridBounds, gfx::Point(x, y), PreferSnapTo::ClosestGridVertex,
-                                  gen::GridType::RECTANGULAR);
+    gfx::Point pt = snap_to_grid(gridBounds,
+                                 gfx::Point(x, y),
+                                 PreferSnapTo::ClosestGridVertex,
+                                 gen::GridType::RECTANGULAR);
     x = pt.x;
     y = pt.y;
   }

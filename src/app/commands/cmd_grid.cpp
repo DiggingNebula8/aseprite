@@ -126,7 +126,8 @@ void GridSettingsCommand::onExecute(Context* context)
 
   // Show/hide vertical opacity based on grid type
   auto updateVerticalOpacityVisibility = [&window] {
-    bool isIsometric = window.gridType()->getSelectedItemIndex() == int(app::gen::GridType::ISOMETRIC);
+    bool isIsometric = window.gridType()->getSelectedItemIndex() ==
+                       int(app::gen::GridType::ISOMETRIC);
     window.verticalOpacityLabel()->setVisible(isIsometric);
     window.verticalOpacity()->setVisible(isIsometric);
     window.layout();
