@@ -1308,12 +1308,18 @@ void Editor::drawGrid(Graphics* g,
     // Vertical lines occur at X = originX + k * halfW for integer k
     constexpr bool kShowVerticalLines = true;
     if (kShowVerticalLines) {
+      // TODO: Add vertical line opacity as a separate preference in grid settings.
+      // For now, use a fixed subtle opacity value for vertical guide lines.
+      constexpr int kVerticalLineOpacity = 30;
+      gfx::Color vertical_color =
+        gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), kVerticalLineOpacity);
+
       int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - 1;
       int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + 1;
       for (int k = minK; k <= maxK; ++k) {
         int vx = static_cast<int>(std::round(originX + k * halfW));
         if (vx >= screenX1 && vx <= screenX2) {
-          g->drawVLine(grid_color, vx, screenY1, spriteBounds.h);
+          g->drawVLine(vertical_color, vx, screenY1, spriteBounds.h);
         }
       }
     }
