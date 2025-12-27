@@ -113,6 +113,15 @@ void GridSettingsCommand::onExecute(Context* context)
   window.gridW()->setTextf("%d", bounds.w);
   window.gridH()->setTextf("%d", bounds.h);
   window.gridColor()->setColor(docPref.grid.color());
+  window.gridOpacity()->setValue(docPref.grid.opacity());
+  window.gridAutoOpacity()->setSelected(docPref.grid.autoOpacity());
+
+  // Update opacity slider enabled state based on auto checkbox
+  auto updateOpacityState = [&window] {
+    window.gridOpacity()->setEnabled(!window.gridAutoOpacity()->isSelected());
+  };
+  updateOpacityState();
+  window.gridAutoOpacity()->Click.connect(updateOpacityState);
 
   window.gridW()->Leave.connect([&window] {
     // Prevent entering a width lesser than 1
@@ -148,9 +157,11 @@ void GridSettingsCommand::onExecute(Context* context)
     tx(new cmd::SetGridBounds(site.sprite(), bounds));
     tx.commit();
 
-    // Save grid type and color
+    // Save grid type, color, and opacity
     docPref.grid.type(static_cast<app::gen::GridType>(window.gridType()->getSelectedItemIndex()));
     docPref.grid.color(window.gridColor()->getColor());
+    docPref.grid.opacity(window.gridOpacity()->getValue());
+    docPref.grid.autoOpacity(window.gridAutoOpacity()->isSelected());
 
     if (!docPref.show.grid()) // Make grid visible
       docPref.show.grid(true);
