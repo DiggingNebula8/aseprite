@@ -5,6 +5,7 @@
 // This program is distributed under the terms of
 // the End-User License Agreement for Aseprite.
 
+#include "app/pref/preferences.h"
 #include "app/snap_to_grid.h"
 #include "base/gcd.h"
 #include "base/pi.h"
@@ -288,10 +289,12 @@ private:
   {
     auto grid = loop->getGridBounds();
 
-    Rect a(snap_to_grid(grid, stroke[0].toPoint(), PreferSnapTo::BoxOrigin),
-           snap_to_grid(grid, stroke[0].toPoint(), PreferSnapTo::BoxEnd));
-    Rect b(snap_to_grid(grid, stroke[1].toPoint(), PreferSnapTo::BoxOrigin),
-           snap_to_grid(grid, stroke[1].toPoint(), PreferSnapTo::BoxEnd));
+    Rect a(
+      snap_to_grid(grid, stroke[0].toPoint(), PreferSnapTo::BoxOrigin, gen::GridType::RECTANGULAR),
+      snap_to_grid(grid, stroke[0].toPoint(), PreferSnapTo::BoxEnd, gen::GridType::RECTANGULAR));
+    Rect b(
+      snap_to_grid(grid, stroke[1].toPoint(), PreferSnapTo::BoxOrigin, gen::GridType::RECTANGULAR),
+      snap_to_grid(grid, stroke[1].toPoint(), PreferSnapTo::BoxEnd, gen::GridType::RECTANGULAR));
 
     a |= b;
 

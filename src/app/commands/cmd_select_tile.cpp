@@ -15,6 +15,7 @@
 #include "app/doc.h"
 #include "app/i18n/strings.h"
 #include "app/modules/gui.h"
+#include "app/pref/preferences.h"
 #include "app/snap_to_grid.h"
 #include "app/tx.h"
 #include "app/ui/editor/editor.h"
@@ -81,7 +82,7 @@ void SelectTileCommand::onExecute(Context* ctx)
   {
     gfx::Rect gridBounds = writer.site().gridBounds();
     gfx::Point pos = editor->screenToEditor(editor->mousePosInDisplay());
-    pos = snap_to_grid(gridBounds, pos, PreferSnapTo::BoxOrigin);
+    pos = snap_to_grid(gridBounds, pos, PreferSnapTo::BoxOrigin, gen::GridType::RECTANGULAR);
     gridBounds.setOrigin(pos);
 
     switch (m_mode) {

@@ -104,11 +104,37 @@ void GridSettingsCommand::onExecute(Context* context)
 
   Site site = context->activeSite();
   Rect bounds = site.gridBounds();
+  auto& docPref = Preferences::instance().document(site.document());
 
+  // Load current values
+  window.gridType()->setSelectedItemIndex(int(docPref.grid.type()));
   window.gridX()->setTextf("%d", bounds.x);
   window.gridY()->setTextf("%d", bounds.y);
   window.gridW()->setTextf("%d", bounds.w);
   window.gridH()->setTextf("%d", bounds.h);
+  window.gridColor()->setColor(docPref.grid.color());
+  window.gridOpacity()->setValue(docPref.grid.opacity());
+  window.gridAutoOpacity()->setSelected(docPref.grid.autoOpacity());
+  window.verticalOpacity()->setValue(docPref.grid.isometricVerticalOpacity());
+
+  // Update opacity slider enabled state based on auto checkbox
+  auto updateOpacityState = [&window] {
+    window.gridOpacity()->setEnabled(!window.gridAutoOpacity()->isSelected());
+  };
+  updateOpacityState();
+  window.gridAutoOpacity()->Click.connect(updateOpacityState);
+
+  // Show/hide vertical opacity based on grid type
+  auto updateVerticalOpacityVisibility = [&window] {
+    bool isIsometric = window.gridType()->getSelectedItemIndex() ==
+                       int(app::gen::GridType::ISOMETRIC);
+    window.verticalOpacityLabel()->setVisible(isIsometric);
+    window.verticalOpacity()->setVisible(isIsometric);
+    window.layout();
+  };
+  updateVerticalOpacityVisibility();
+  window.gridType()->Change.connect(updateVerticalOpacityVisibility);
+
   window.gridW()->Leave.connect([&window] {
     // Prevent entering a width lesser than 1
     if (window.gridW()->textInt() <= 0)
@@ -119,6 +145,15 @@ void GridSettingsCommand::onExecute(Context* context)
     if (window.gridH()->textInt() <= 0)
       window.gridH()->setText("1");
   });
+  // Auto-set recommended grid size when switching to isometric
+  window.gridType()->Change.connect([&window] {
+    if (window.gridType()->getSelectedItemIndex() == int(app::gen::GridType::ISOMETRIC)) {
+      // Default to 16×8 (2:1 ratio) for standard isometric
+      window.gridW()->setText("16");
+      window.gridH()->setText("8");
+    }
+  });
+
   window.openWindowInForeground();
 
   if (window.closer() == window.ok()) {
@@ -134,7 +169,13 @@ void GridSettingsCommand::onExecute(Context* context)
     tx(new cmd::SetGridBounds(site.sprite(), bounds));
     tx.commit();
 
-    auto& docPref = Preferences::instance().document(site.document());
+    // Save grid type, color, opacity, and isometric settings
+    docPref.grid.type(static_cast<app::gen::GridType>(window.gridType()->getSelectedItemIndex()));
+    docPref.grid.color(window.gridColor()->getColor());
+    docPref.grid.opacity(window.gridOpacity()->getValue());
+    docPref.grid.autoOpacity(window.gridAutoOpacity()->isSelected());
+    docPref.grid.isometricVerticalOpacity(window.verticalOpacity()->getValue());
+
     if (!docPref.show.grid()) // Make grid visible
       docPref.show.grid(true);
   }

@@ -359,6 +359,7 @@ public:
 
   const doc::Grid& getGrid() const override { return m_grid; }
   gfx::Rect getGridBounds() override { return m_gridBounds; }
+  gen::GridType getGridType() override { return m_docPref.grid.type(); }
   gfx::Point getCelOrigin() override { return m_celOrigin; }
   bool needsCelCoordinates() override { return m_ink->needsCelCoordinates(); }
   void setSpeed(const gfx::Point& speed) override { m_speed = speed; }

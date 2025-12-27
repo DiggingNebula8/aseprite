@@ -49,6 +49,10 @@ namespace app {
 class Context;
 class Doc;
 
+namespace gen {
+enum class GridType;
+}
+
 namespace tools {
 class Controller;
 class Ink;
@@ -206,6 +210,7 @@ public:
   virtual bool getStopAtGrid() = 0; // For floodfill-like tools
   virtual const doc::Grid& getGrid() const = 0;
   virtual gfx::Rect getGridBounds() = 0;
+  virtual gen::GridType getGridType() = 0;
   virtual bool isPixelConnectivityEightConnected() = 0;
   virtual bool isPointInsideCanvas(const gfx::Point& point) = 0;
 
