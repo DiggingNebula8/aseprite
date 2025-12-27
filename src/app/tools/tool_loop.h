@@ -49,7 +49,9 @@ namespace app {
 class Context;
 class Doc;
 
-namespace gen { enum class GridType; }
+namespace gen {
+enum class GridType;
+}
 
 namespace tools {
 class Controller;

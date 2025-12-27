@@ -1224,8 +1224,8 @@ void Editor::drawGrid(Graphics* g,
     //   - 2:1 ratio (e.g., 32x16) gives standard isometric (~26.57°)
     //   - Any ratio works, creating different projection angles
 
-    const double tileW = gridF.w;  // Diamond width
-    const double tileH = gridF.h;  // Diamond height
+    const double tileW = gridF.w; // Diamond width
+    const double tileH = gridF.h; // Diamond height
     const double halfW = tileW / 2.0;
     const double halfH = tileH / 2.0;
 
@@ -1242,31 +1242,30 @@ void Editor::drawGrid(Graphics* g,
     // Using inverse transformation: screen -> tile
     //   tile.x = (screen.x / halfW + screen.y / halfH) / 2
     //   tile.y = (screen.y / halfH - screen.x / halfW) / 2
-    
     auto screenToTile = [&](double sx, double sy) -> std::pair<double, double> {
       double relX = sx - originX;
       double relY = sy - originY;
       double tileX = (relX / halfW + relY / halfH) / 2.0;
       double tileY = (relY / halfH - relX / halfW) / 2.0;
-      return {tileX, tileY};
+      return { tileX, tileY };
     };
 
     auto tileToScreen = [&](double tx, double ty) -> std::pair<double, double> {
       double screenX = originX + (tx - ty) * halfW;
       double screenY = originY + (tx + ty) * halfH;
-      return {screenX, screenY};
+      return { screenX, screenY };
     };
 
     // Find the range of tiles visible on screen
-    auto [t1x, t1y] = screenToTile(screenX1, screenY1);  // Top-left
-    auto [t2x, t2y] = screenToTile(screenX2, screenY1);  // Top-right
-    auto [t3x, t3y] = screenToTile(screenX1, screenY2);  // Bottom-left
-    auto [t4x, t4y] = screenToTile(screenX2, screenY2);  // Bottom-right
+    auto [t1x, t1y] = screenToTile(screenX1, screenY1); // Top-left
+    auto [t2x, t2y] = screenToTile(screenX2, screenY1); // Top-right
+    auto [t3x, t3y] = screenToTile(screenX1, screenY2); // Bottom-left
+    auto [t4x, t4y] = screenToTile(screenX2, screenY2); // Bottom-right
 
-    int minTileX = static_cast<int>(std::floor(std::min({t1x, t2x, t3x, t4x}))) - 2;
-    int maxTileX = static_cast<int>(std::ceil(std::max({t1x, t2x, t3x, t4x}))) + 2;
-    int minTileY = static_cast<int>(std::floor(std::min({t1y, t2y, t3y, t4y}))) - 2;
-    int maxTileY = static_cast<int>(std::ceil(std::max({t1y, t2y, t3y, t4y}))) + 2;
+    int minTileX = static_cast<int>(std::floor(std::min({ t1x, t2x, t3x, t4x }))) - 2;
+    int maxTileX = static_cast<int>(std::ceil(std::max({ t1x, t2x, t3x, t4x }))) + 2;
+    int minTileY = static_cast<int>(std::floor(std::min({ t1y, t2y, t3y, t4y }))) - 2;
+    int maxTileY = static_cast<int>(std::ceil(std::max({ t1y, t2y, t3y, t4y }))) + 2;
 
     // Safeguard: limit maximum number of tiles to prevent performance issues
     // with very small tile sizes. Max 10000 tiles (100x100 reasonable limit).
@@ -1282,13 +1281,13 @@ void Editor::drawGrid(Graphics* g,
     // Draw diamond edges for each tile
     // A diamond tile at (tx, ty) has vertices at:
     //   Top:    tileToScreen(tx, ty)
-    //   Right:  tileToScreen(tx+1, ty)  
+    //   Right:  tileToScreen(tx+1, ty)
     //   Bottom: tileToScreen(tx+1, ty+1)
     //   Left:   tileToScreen(tx, ty+1)
-    
+
     // Draw vertical lines through diamond vertices for additional snap points
     constexpr bool kShowVerticalLines = true;
-    
+
     for (int ty = minTileY; ty <= maxTileY; ++ty) {
       for (int tx = minTileX; tx <= maxTileX; ++tx) {
         // Get vertices of this diamond tile

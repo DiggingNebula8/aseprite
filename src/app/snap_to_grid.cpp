@@ -15,8 +15,8 @@
 #include "gfx/point.h"
 #include "gfx/rect.h"
 
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 
 namespace app {
 
@@ -35,14 +35,15 @@ namespace app {
 // Works with any width/height ratio:
 //   - 2:1 ratio (e.g., 32x16) = standard isometric (~26.57°)
 //   - Other ratios create dimetric projections
-static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point& point,
-                                          const PreferSnapTo prefer)
+static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid,
+                                         const gfx::Point& point,
+                                         const PreferSnapTo prefer)
 {
   if (grid.isEmpty())
     return point;
 
-  const double tileW = grid.w;  // Diamond width
-  const double tileH = grid.h;  // Diamond height
+  const double tileW = grid.w; // Diamond width
+  const double tileH = grid.h; // Diamond height
   const double halfW = tileW / 2.0;
   const double halfH = tileH / 2.0;
 
@@ -53,7 +54,6 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point
   // Convert screen point to tile coordinates (relative to origin)
   const double relX = point.x - originX;
   const double relY = point.y - originY;
-  
   // Screen to tile transformation (inverse of diamond projection)
   const double tileXf = (relX / halfW + relY / halfH) / 2.0;
   const double tileYf = (relY / halfH - relX / halfW) / 2.0;
@@ -66,8 +66,7 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point
   const double snapX = originX + (tileX - tileY) * halfW;
   const double snapY = originY + (tileX + tileY) * halfH;
 
-  gfx::Point bestSnap(static_cast<int>(std::round(snapX)), 
-                      static_cast<int>(std::round(snapY)));
+  gfx::Point bestSnap(static_cast<int>(std::round(snapX)), static_cast<int>(std::round(snapY)));
   double bestDist = std::hypot(bestSnap.x - point.x, bestSnap.y - point.y);
 
   // Also consider vertices on the nearest vertical grid line as candidates.
@@ -88,8 +87,7 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point
 
     gfx::Point vertSnap(static_cast<int>(std::round(verticalX)),
                         static_cast<int>(std::round(verticalY)));
-    const double vertDist =
-      std::hypot(double(vertSnap.x - point.x), double(vertSnap.y - point.y));
+    const double vertDist = std::hypot(double(vertSnap.x - point.x), double(vertSnap.y - point.y));
 
     if (vertDist < bestDist)
       bestSnap = vertSnap;
@@ -98,8 +96,10 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point
   return bestSnap;
 }
 
-gfx::Point snap_to_grid(const gfx::Rect& grid, const gfx::Point& point,
-                        const PreferSnapTo prefer, const gen::GridType gridType)
+gfx::Point snap_to_grid(const gfx::Rect& grid,
+                        const gfx::Point& point,
+                        const PreferSnapTo prefer,
+                        const gen::GridType gridType)
 {
   // For isometric grid, use specialized snapping
   if (gridType == gen::GridType::ISOMETRIC) {
