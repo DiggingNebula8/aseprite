@@ -9,10 +9,13 @@
 #define APP_SNAP_TO_GRID_H_INCLUDED
 #pragma once
 
-#include "app/pref/preferences.h"
 #include "gfx/fwd.h"
 
 namespace app {
+
+namespace gen {
+enum class GridType;
+}
 
 enum class PreferSnapTo {
   ClosestGridVertex,
@@ -25,7 +28,7 @@ enum class PreferSnapTo {
 gfx::Point snap_to_grid(const gfx::Rect& grid,
                         const gfx::Point& point,
                         const PreferSnapTo prefer,
-                        const gen::GridType gridType = gen::GridType::RECTANGULAR);
+                        const gen::GridType gridType);
 
 } // namespace app
 

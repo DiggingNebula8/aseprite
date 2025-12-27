@@ -1285,9 +1285,7 @@ void Editor::drawGrid(Graphics* g,
     //   Bottom: tileToScreen(tx+1, ty+1)
     //   Left:   tileToScreen(tx, ty+1)
 
-    // Draw vertical lines through diamond vertices for additional snap points
-    constexpr bool kShowVerticalLines = true;
-
+    // Draw diamond edges for each tile
     for (int ty = minTileY; ty <= maxTileY; ++ty) {
       for (int tx = minTileX; tx <= maxTileX; ++tx) {
         // Get vertices of this diamond tile
@@ -1303,10 +1301,19 @@ void Editor::drawGrid(Graphics* g,
         g->drawLine(grid_color,
                     gfx::Point(static_cast<int>(rightX), static_cast<int>(rightY)),
                     gfx::Point(static_cast<int>(bottomX), static_cast<int>(bottomY)));
+      }
+    }
 
-        // Draw vertical line at this vertex position
-        if (kShowVerticalLines) {
-          g->drawVLine(grid_color, static_cast<int>(topX), screenY1, spriteBounds.h);
+    // Draw vertical lines ONCE per unique X position (optimized - avoids overdraw)
+    // Vertical lines occur at X = originX + k * halfW for integer k
+    constexpr bool kShowVerticalLines = true;
+    if (kShowVerticalLines) {
+      int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - 1;
+      int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + 1;
+      for (int k = minK; k <= maxK; ++k) {
+        int vx = static_cast<int>(std::round(originX + k * halfW));
+        if (vx >= screenX1 && vx <= screenX2) {
+          g->drawVLine(grid_color, vx, screenY1, spriteBounds.h);
         }
       }
     }
@@ -3001,7 +3008,8 @@ void Editor::pasteImage(const Image* image, const Mask* mask, const gfx::Point* 
   // TODO should we move this to PixelsMovement or MovingPixelsState?
   if (site.tilemapMode() == TilemapMode::Tiles) {
     gfx::Rect gridBounds = site.gridBounds();
-    gfx::Point pt = snap_to_grid(gridBounds, gfx::Point(x, y), PreferSnapTo::ClosestGridVertex);
+    gfx::Point pt = snap_to_grid(gridBounds, gfx::Point(x, y), PreferSnapTo::ClosestGridVertex,
+                                  gen::GridType::RECTANGULAR);
     x = pt.x;
     y = pt.y;
   }

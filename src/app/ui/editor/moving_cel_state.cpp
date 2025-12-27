@@ -18,6 +18,7 @@
 #include "app/doc_api.h"
 #include "app/doc_range.h"
 #include "app/snap_to_grid.h"
+#include "app/pref/preferences.h"
 #include "app/tx.h"
 #include "app/ui/editor/editor.h"
 #include "app/ui/editor/editor_customization_delegate.h"
@@ -401,7 +402,8 @@ void MovingCelState::snapOffsetToGrid(gfx::Point& offset) const
   const gfx::RectF displaceGrid(gridBounds.origin() + m_pivotOffset, gridBounds.size());
   offset = snap_to_grid(displaceGrid,
                         gfx::Point(m_fullBounds.origin() + offset),
-                        PreferSnapTo::ClosestGridVertex) -
+                        PreferSnapTo::ClosestGridVertex,
+                        gen::GridType::RECTANGULAR) -
            m_fullBounds.origin();
 }
 
@@ -413,7 +415,8 @@ void MovingCelState::snapBoundsToGrid(gfx::RectF& celBounds) const
   if (m_scaled) {
     gfx::PointF gridOffset(snap_to_grid(displaceGrid,
                                         gfx::Point(origin.x + celBounds.w, origin.y + celBounds.h),
-                                        PreferSnapTo::ClosestGridVertex) -
+                                        PreferSnapTo::ClosestGridVertex,
+                                        gen::GridType::RECTANGULAR) -
                            origin);
 
     celBounds.w = std::max(gridBounds.w, gridOffset.x);
@@ -421,7 +424,8 @@ void MovingCelState::snapBoundsToGrid(gfx::RectF& celBounds) const
   }
   else if (m_moved) {
     gfx::PointF gridOffset(
-      snap_to_grid(displaceGrid, gfx::Point(origin), PreferSnapTo::ClosestGridVertex));
+      snap_to_grid(displaceGrid, gfx::Point(origin), PreferSnapTo::ClosestGridVertex,
+                   gen::GridType::RECTANGULAR));
 
     celBounds.setOrigin(gridOffset);
   }

@@ -20,6 +20,7 @@
 #include "app/filename_formatter.h"
 #include "app/restore_visible_layers.h"
 #include "app/snap_to_grid.h"
+#include "app/pref/preferences.h"
 #include "app/util/autocrop.h"
 #include "base/convert_to.h"
 #include "base/fs.h"
@@ -1166,9 +1167,11 @@ void DocExporter::captureSamples(Samples& samples, base::task_token& token)
           if (m_trimByGrid) {
             const gfx::Rect& gridBounds = doc->sprite()->gridBounds();
             gfx::Point posTopLeft =
-              snap_to_grid(gridBounds, frameBounds.origin(), PreferSnapTo::FloorGrid);
+              snap_to_grid(gridBounds, frameBounds.origin(), PreferSnapTo::FloorGrid,
+                           gen::GridType::RECTANGULAR);
             gfx::Point posBottomRight =
-              snap_to_grid(gridBounds, frameBounds.point2(), PreferSnapTo::CeilGrid);
+              snap_to_grid(gridBounds, frameBounds.point2(), PreferSnapTo::CeilGrid,
+                           gen::GridType::RECTANGULAR);
             frameBounds = gfx::Rect(posTopLeft, posBottomRight);
           }
           sample.setTrimmedBounds(frameBounds);
@@ -1188,7 +1191,8 @@ void DocExporter::captureSamples(Samples& samples, base::task_token& token)
       if (item.splitGrid) {
         const gfx::Rect& gridBounds = sprite->gridBounds();
         gfx::Point initPos(0, 0), pos;
-        initPos = pos = snap_to_grid(gridBounds, initPos, PreferSnapTo::BoxOrigin);
+        initPos = pos = snap_to_grid(gridBounds, initPos, PreferSnapTo::BoxOrigin,
+                                      gen::GridType::RECTANGULAR);
 
         for (; pos.y + gridBounds.h <= spriteBounds.h; pos.y += gridBounds.h) {
           for (pos.x = initPos.x; pos.x + gridBounds.w <= spriteBounds.w; pos.x += gridBounds.w) {

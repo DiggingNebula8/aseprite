@@ -388,7 +388,8 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
           const int gridH = m_site.gridBounds().h;
           gfx::PointF point(snap_to_grid(gfx::Rect(0, 0, gridW, gridH),
                                          (gfx::Point)(pos - m_catchPos),
-                                         PreferSnapTo::ClosestGridVertex));
+                                         PreferSnapTo::ClosestGridVertex,
+                                         gen::GridType::RECTANGULAR));
           dx = point.x;
           dy = point.y;
         }
@@ -415,7 +416,8 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
         // Snap the x1,y1 point to the grid.
         gfx::PointF gridOffset(snap_to_grid(m_site.gridBounds(),
                                             gfx::Point(bounds.origin()),
-                                            PreferSnapTo::ClosestGridVertex));
+                                            PreferSnapTo::ClosestGridVertex,
+                                            gen::GridType::RECTANGULAR));
 
         // Now we calculate the difference from x1,y1 point and we can
         // use it to adjust all coordinates (x1, y1, x2, y2).
@@ -531,8 +533,10 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
         b.x = b.x - (a.x <= b.x ? 1 : 0);
         b.y = b.y - (a.y <= b.y ? 1 : 0);
         gfx::Rect gridBounds = m_site.gridBounds();
-        a = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(a), PreferSnapTo::BoxOrigin));
-        b = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(b), PreferSnapTo::BoxEnd));
+        a = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(a), PreferSnapTo::BoxOrigin,
+                                      gen::GridType::RECTANGULAR));
+        b = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(b), PreferSnapTo::BoxEnd,
+                                      gen::GridType::RECTANGULAR));
       }
 
       // Do not use "gfx::Rect(a, b)" here because if a > b we want to

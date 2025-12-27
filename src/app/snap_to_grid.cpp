@@ -58,23 +58,46 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid,
   const double tileXf = (relX / halfW + relY / halfH) / 2.0;
   const double tileYf = (relY / halfH - relX / halfW) / 2.0;
 
-  // Round to nearest tile coordinate (diamond vertex)
-  const int tileX = static_cast<int>(std::round(tileXf));
-  const int tileY = static_cast<int>(std::round(tileYf));
+  // Calculate tile coordinates based on snap preference
+  int tileX, tileY;
+  switch (prefer) {
+    case PreferSnapTo::ClosestGridVertex:
+    default:
+      // Round to nearest tile coordinate (diamond vertex)
+      tileX = static_cast<int>(std::round(tileXf));
+      tileY = static_cast<int>(std::round(tileYf));
+      break;
+
+    case PreferSnapTo::BoxOrigin:
+    case PreferSnapTo::FloorGrid:
+      // Floor to get the tile containing the point (top-left of bounding box)
+      tileX = static_cast<int>(std::floor(tileXf));
+      tileY = static_cast<int>(std::floor(tileYf));
+      break;
+
+    case PreferSnapTo::BoxEnd:
+    case PreferSnapTo::CeilGrid:
+      // Ceil to get the next tile boundary (bottom-right of bounding box)
+      tileX = static_cast<int>(std::ceil(tileXf));
+      tileY = static_cast<int>(std::ceil(tileYf));
+      break;
+  }
 
   // Convert back to screen coordinates (tile to screen transformation)
   const double snapX = originX + (tileX - tileY) * halfW;
   const double snapY = originY + (tileX + tileY) * halfH;
 
   gfx::Point bestSnap(static_cast<int>(std::round(snapX)), static_cast<int>(std::round(snapY)));
-  double bestDist = std::hypot(bestSnap.x - point.x, bestSnap.y - point.y);
 
-  // Also consider vertices on the nearest vertical grid line as candidates.
-  // Vertical lines are at x = originX + k * halfW, with vertices along them
-  // at y = originY + s * halfH for integer k, s.
+  // For ClosestGridVertex, also consider vertices on the nearest vertical
+  // grid line as candidates. Vertical lines are at x = originX + k * halfW,
+  // with vertices along them at y = originY + s * halfH for integer k, s.
+  // This feature is disabled by default but can be enabled for future use.
   constexpr bool kSnapToVerticals = false;
 
-  if (kSnapToVerticals) {
+  if (kSnapToVerticals && prefer == PreferSnapTo::ClosestGridVertex) {
+    double bestDist = std::hypot(bestSnap.x - point.x, bestSnap.y - point.y);
+
     // Snap X to nearest vertical line.
     const double verticalIndex = relX / halfW;
     const int nearestVertIdx = static_cast<int>(std::round(verticalIndex));
