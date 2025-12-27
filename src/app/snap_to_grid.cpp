@@ -70,32 +70,29 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point
                       static_cast<int>(std::round(snapY)));
   double bestDist = std::hypot(bestSnap.x - point.x, bestSnap.y - point.y);
 
-  // Also snap to vertical line intersection points for additional precision
-  constexpr bool kSnapToVerticals = true;
-  
+  // Also consider vertices on the nearest vertical grid line as candidates.
+  // Vertical lines are at x = originX + k * halfW, with vertices along them
+  // at y = originY + s * halfH for integer k, s.
+  constexpr bool kSnapToVerticals = false;
+
   if (kSnapToVerticals) {
-    // Vertical lines pass through points where screenX = originX + (tx - ty) * halfW
-    // Find the nearest vertical line X position
-    double verticalIndex = relX / halfW;
-    int nearestVertIdx = static_cast<int>(std::round(verticalIndex));
-    double verticalX = originX + nearestVertIdx * halfW;
-    
-    // Find nearest Y intersection point on this vertical (spaced halfH apart)
-    double verticalYOffset = std::fmod(relY - originY, halfH);
-    if (verticalYOffset < 0) verticalYOffset += halfH;
-    
-    double nearestY = relY - verticalYOffset;
-    if (verticalYOffset > halfH / 2) {
-      nearestY += halfH;
-    }
-    
+    // Snap X to nearest vertical line.
+    const double verticalIndex = relX / halfW;
+    const int nearestVertIdx = static_cast<int>(std::round(verticalIndex));
+    const double verticalX = originX + nearestVertIdx * halfW;
+
+    // Snap Y to nearest vertex along that vertical.
+    const double tileSumf = relY / halfH;
+    const int nearestSum = static_cast<int>(std::round(tileSumf));
+    const double verticalY = originY + nearestSum * halfH;
+
     gfx::Point vertSnap(static_cast<int>(std::round(verticalX)),
-                        static_cast<int>(std::round(nearestY)));
-    double vertDist = std::hypot(vertSnap.x - point.x, vertSnap.y - point.y);
-    
-    if (vertDist < bestDist) {
+                        static_cast<int>(std::round(verticalY)));
+    const double vertDist =
+      std::hypot(double(vertSnap.x - point.x), double(vertSnap.y - point.y));
+
+    if (vertDist < bestDist)
       bestSnap = vertSnap;
-    }
   }
 
   return bestSnap;

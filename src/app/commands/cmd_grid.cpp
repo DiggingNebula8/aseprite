@@ -124,7 +124,6 @@ void GridSettingsCommand::onExecute(Context* context)
     if (window.gridH()->textInt() <= 0)
       window.gridH()->setText("1");
   });
-  
   // Auto-set recommended grid size when switching to isometric
   window.gridType()->Change.connect([&window] {
     if (window.gridType()->getSelectedItemIndex() == int(app::gen::GridType::ISOMETRIC)) {
@@ -133,7 +132,7 @@ void GridSettingsCommand::onExecute(Context* context)
       window.gridH()->setText("8");
     }
   });
-  
+
   window.openWindowInForeground();
 
   if (window.closer() == window.ok()) {
