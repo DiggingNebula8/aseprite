@@ -89,33 +89,6 @@ static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid,
 
   gfx::Point bestSnap(static_cast<int>(std::round(snapX)), static_cast<int>(std::round(snapY)));
 
-  // For ClosestGridVertex, also consider vertices on the nearest vertical
-  // grid line as candidates. Vertical lines are at x = originX + k * halfW,
-  // with vertices along them at y = originY + s * halfH for integer k, s.
-  // This feature is disabled by default but can be enabled for future use.
-  constexpr bool kSnapToVerticals = false;
-
-  if (kSnapToVerticals && prefer == PreferSnapTo::ClosestGridVertex) {
-    double bestDist = std::hypot(bestSnap.x - point.x, bestSnap.y - point.y);
-
-    // Snap X to nearest vertical line.
-    const double verticalIndex = relX / halfW;
-    const int nearestVertIdx = static_cast<int>(std::round(verticalIndex));
-    const double verticalX = originX + nearestVertIdx * halfW;
-
-    // Snap Y to nearest vertex along that vertical.
-    const double tileSumf = relY / halfH;
-    const int nearestSum = static_cast<int>(std::round(tileSumf));
-    const double verticalY = originY + nearestSum * halfH;
-
-    gfx::Point vertSnap(static_cast<int>(std::round(verticalX)),
-                        static_cast<int>(std::round(verticalY)));
-    const double vertDist = std::hypot(double(vertSnap.x - point.x), double(vertSnap.y - point.y));
-
-    if (vertDist < bestDist)
-      bestSnap = vertSnap;
-  }
-
   return bestSnap;
 }
 

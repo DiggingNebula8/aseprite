@@ -403,7 +403,7 @@ void MovingCelState::snapOffsetToGrid(gfx::Point& offset) const
   offset = snap_to_grid(displaceGrid,
                         gfx::Point(m_fullBounds.origin() + offset),
                         PreferSnapTo::ClosestGridVertex,
-                        gen::GridType::RECTANGULAR) -
+                        m_editor->docPref().grid.type()) -
            m_fullBounds.origin();
 }
 
@@ -416,7 +416,7 @@ void MovingCelState::snapBoundsToGrid(gfx::RectF& celBounds) const
     gfx::PointF gridOffset(snap_to_grid(displaceGrid,
                                         gfx::Point(origin.x + celBounds.w, origin.y + celBounds.h),
                                         PreferSnapTo::ClosestGridVertex,
-                                        gen::GridType::RECTANGULAR) -
+                                        m_editor->docPref().grid.type()) -
                            origin);
 
     celBounds.w = std::max(gridBounds.w, gridOffset.x);
@@ -425,7 +425,7 @@ void MovingCelState::snapBoundsToGrid(gfx::RectF& celBounds) const
   else if (m_moved) {
     gfx::PointF gridOffset(
       snap_to_grid(displaceGrid, gfx::Point(origin), PreferSnapTo::ClosestGridVertex,
-                   gen::GridType::RECTANGULAR));
+                   m_editor->docPref().grid.type()));
 
     celBounds.setOrigin(gridOffset);
   }

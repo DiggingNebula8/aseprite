@@ -389,7 +389,7 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
           gfx::PointF point(snap_to_grid(gfx::Rect(0, 0, gridW, gridH),
                                          (gfx::Point)(pos - m_catchPos),
                                          PreferSnapTo::ClosestGridVertex,
-                                         gen::GridType::RECTANGULAR));
+                                         Preferences::instance().document(m_document).grid.type()));
           dx = point.x;
           dy = point.y;
         }
@@ -417,7 +417,7 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
         gfx::PointF gridOffset(snap_to_grid(m_site.gridBounds(),
                                             gfx::Point(bounds.origin()),
                                             PreferSnapTo::ClosestGridVertex,
-                                            gen::GridType::RECTANGULAR));
+                                            Preferences::instance().document(m_document).grid.type()));
 
         // Now we calculate the difference from x1,y1 point and we can
         // use it to adjust all coordinates (x1, y1, x2, y2).
@@ -534,9 +534,9 @@ void PixelsMovement::moveImage(const gfx::PointF& pos, MoveModifier moveModifier
         b.y = b.y - (a.y <= b.y ? 1 : 0);
         gfx::Rect gridBounds = m_site.gridBounds();
         a = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(a), PreferSnapTo::BoxOrigin,
-                                      gen::GridType::RECTANGULAR));
+                                      Preferences::instance().document(m_document).grid.type()));
         b = gfx::PointF(snap_to_grid(gridBounds, gfx::Point(b), PreferSnapTo::BoxEnd,
-                                      gen::GridType::RECTANGULAR));
+                                      Preferences::instance().document(m_document).grid.type()));
       }
 
       // Do not use "gfx::Rect(a, b)" here because if a > b we want to
