@@ -20,62 +20,85 @@
 
 namespace app {
 
-// Helper function for isometric grid snapping
-// Grid pattern: vertical lines at dx spacing, diagonals connecting them
-// Snap to diamond pattern vertices where all lines intersect
+// Helper function for isometric grid snapping using diamond projection.
+// Based on Clint Bellanger's "Isometric Tiles Math":
+//   https://clintbellanger.net/articles/isometric_math/
+//
+// Diamond projection formulas:
+//   screen.x = (tile.x - tile.y) * (TILE_WIDTH / 2)
+//   screen.y = (tile.x + tile.y) * (TILE_HEIGHT / 2)
+//
+// Inverse (screen to tile):
+//   tile.x = (screen.x / halfW + screen.y / halfH) / 2
+//   tile.y = (screen.y / halfH - screen.x / halfW) / 2
+//
+// Works with any width/height ratio:
+//   - 2:1 ratio (e.g., 32x16) = standard isometric (~26.57°)
+//   - Other ratios create dimetric projections
 static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid, const gfx::Point& point,
                                           const PreferSnapTo prefer)
 {
   if (grid.isEmpty())
     return point;
 
-  const double tileW = grid.w;
-  const double tileH = grid.h;
-  const double dx = tileW / 2.0;  // Vertical line spacing
-  const double dy = tileH;        // Diagonal step height
+  const double tileW = grid.w;  // Diamond width
+  const double tileH = grid.h;  // Diamond height
+  const double halfW = tileW / 2.0;
+  const double halfH = tileH / 2.0;
 
-  // Find the base grid position
-  double baseX = grid.x;
-  double baseY = grid.y;
+  // Grid origin in screen coordinates
+  const double originX = grid.x;
+  const double originY = grid.y;
 
-  // For isometric grid with verticals at dx spacing:
-  // Intersection points form a diamond pattern where:
-  // - Row 0: x = baseX, baseX + tileW, baseX + 2*tileW, ... (even columns)
-  // - Row 1: x = baseX + dx, baseX + dx + tileW, ... (odd columns)
-  // Pattern alternates each row
-
-  // Find the closest row
-  double relY = point.y - baseY;
-  int row = static_cast<int>(std::round(relY / dy));
-  double snapY = baseY + row * dy;
-
-  // Calculate X position based on row parity (alternating pattern)
-  double relX = point.x - baseX;
-  bool oddRow = (row % 2) != 0;
+  // Convert screen point to tile coordinates (relative to origin)
+  const double relX = point.x - originX;
+  const double relY = point.y - originY;
   
-  // Offset for odd rows
-  double xOffset = oddRow ? dx : 0.0;
+  // Screen to tile transformation (inverse of diamond projection)
+  const double tileXf = (relX / halfW + relY / halfH) / 2.0;
+  const double tileYf = (relY / halfH - relX / halfW) / 2.0;
+
+  // Round to nearest tile coordinate (diamond vertex)
+  const int tileX = static_cast<int>(std::round(tileXf));
+  const int tileY = static_cast<int>(std::round(tileYf));
+
+  // Convert back to screen coordinates (tile to screen transformation)
+  const double snapX = originX + (tileX - tileY) * halfW;
+  const double snapY = originY + (tileX + tileY) * halfH;
+
+  gfx::Point bestSnap(static_cast<int>(std::round(snapX)), 
+                      static_cast<int>(std::round(snapY)));
+  double bestDist = std::hypot(bestSnap.x - point.x, bestSnap.y - point.y);
+
+  // Also snap to vertical line intersection points for additional precision
+  constexpr bool kSnapToVerticals = true;
   
-  // Find closest column (using tileW spacing within each row type)
-  int col = static_cast<int>(std::round((relX - xOffset) / tileW));
-  double snapX = baseX + xOffset + col * tileW;
-
-  // Also check the adjacent row's closest point
-  int altRow = (relY / dy - row > 0) ? row + 1 : row - 1;
-  double altSnapY = baseY + altRow * dy;
-  bool altOddRow = (altRow % 2) != 0;
-  double altXOffset = altOddRow ? dx : 0.0;
-  int altCol = static_cast<int>(std::round((relX - altXOffset) / tileW));
-  double altSnapX = baseX + altXOffset + altCol * tileW;
-
-  // Return the closest point
-  double dist1 = std::hypot(snapX - point.x, snapY - point.y);
-  double dist2 = std::hypot(altSnapX - point.x, altSnapY - point.y);
-
-  if (dist2 < dist1) {
-    return gfx::Point(static_cast<int>(altSnapX), static_cast<int>(altSnapY));
+  if (kSnapToVerticals) {
+    // Vertical lines pass through points where screenX = originX + (tx - ty) * halfW
+    // Find the nearest vertical line X position
+    double verticalIndex = relX / halfW;
+    int nearestVertIdx = static_cast<int>(std::round(verticalIndex));
+    double verticalX = originX + nearestVertIdx * halfW;
+    
+    // Find nearest Y intersection point on this vertical (spaced halfH apart)
+    double verticalYOffset = std::fmod(relY - originY, halfH);
+    if (verticalYOffset < 0) verticalYOffset += halfH;
+    
+    double nearestY = relY - verticalYOffset;
+    if (verticalYOffset > halfH / 2) {
+      nearestY += halfH;
+    }
+    
+    gfx::Point vertSnap(static_cast<int>(std::round(verticalX)),
+                        static_cast<int>(std::round(nearestY)));
+    double vertDist = std::hypot(vertSnap.x - point.x, vertSnap.y - point.y);
+    
+    if (vertDist < bestDist) {
+      bestSnap = vertSnap;
+    }
   }
-  return gfx::Point(static_cast<int>(snapX), static_cast<int>(snapY));
+
+  return bestSnap;
 }
 
 gfx::Point snap_to_grid(const gfx::Rect& grid, const gfx::Point& point,

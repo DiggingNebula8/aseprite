@@ -1204,88 +1204,111 @@ void Editor::drawGrid(Graphics* g,
     gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), alpha);
 
   // Check grid type for isometric rendering
-  const bool isIsometric = (m_docPref.grid.type() == gen::GridType::ISOMETRIC);
+  // Note: Pixel Grid (1×1) should always be rectangular regardless of grid type setting
+  // We check the original grid size (before projection), not gridF which is screen-scaled
+  const bool isPixelGrid = (grid.w <= 1 && grid.h <= 1);
+  const bool isIsometric = !isPixelGrid && (m_docPref.grid.type() == gen::GridType::ISOMETRIC);
 
   if (isIsometric) {
-    // Draw isometric grid pattern
-    // 3 sets of lines:
-    // 1. Vertical lines
-    // 2. Diagonal lines going up-right (/) 
-    // 3. Diagonal lines going down-right (\)
+    // Isometric grid rendering using diamond projection.
+    // Based on Clint Bellanger's "Isometric Tiles Math":
+    //   https://clintbellanger.net/articles/isometric_math/
+    //
+    // Diamond projection formulas:
+    //   screen.x = (tile.x - tile.y) * (TILE_WIDTH / 2)
+    //   screen.y = (tile.x + tile.y) * (TILE_HEIGHT / 2)
+    //
+    // This creates a diamond-shaped tile where:
+    //   - TILE_WIDTH controls horizontal span of the diamond
+    //   - TILE_HEIGHT controls vertical span
+    //   - 2:1 ratio (e.g., 32x16) gives standard isometric (~26.57°)
+    //   - Any ratio works, creating different projection angles
 
-    const double tileW = gridF.w;
-    const double tileH = gridF.h;
+    const double tileW = gridF.w;  // Diamond width
+    const double tileH = gridF.h;  // Diamond height
+    const double halfW = tileW / 2.0;
+    const double halfH = tileH / 2.0;
 
-    const double x1 = spriteBounds.x;
-    const double y1 = spriteBounds.y;
-    const double x2 = spriteBounds.x + spriteBounds.w;
-    const double y2 = spriteBounds.y + spriteBounds.h;
+    const double screenX1 = spriteBounds.x;
+    const double screenY1 = spriteBounds.y;
+    const double screenX2 = spriteBounds.x + spriteBounds.w;
+    const double screenY2 = spriteBounds.y + spriteBounds.h;
 
-    // The slope for diagonal lines: for every tileW/2 horizontal, tileH vertical
-    const double dx = tileW / 2.0;  // horizontal step per vertical step
-    const double dy = tileH;         // vertical step
+    // Find grid origin in screen coordinates
+    const double originX = gridF.x;
+    const double originY = gridF.y;
 
-    // Find grid origin aligned to visible area
-    double baseX = gridF.x;
-    double baseY = gridF.y;
-    while (baseX > x1) baseX -= tileW;
-    while (baseY > y1) baseY -= tileH;
-    while (baseX + tileW < x1) baseX += tileW;
-    while (baseY + tileH < y1) baseY += tileH;
+    // Calculate tile coordinate range needed to cover visible area
+    // Using inverse transformation: screen -> tile
+    //   tile.x = (screen.x / halfW + screen.y / halfH) / 2
+    //   tile.y = (screen.y / halfH - screen.x / halfW) / 2
+    
+    auto screenToTile = [&](double sx, double sy) -> std::pair<double, double> {
+      double relX = sx - originX;
+      double relY = sy - originY;
+      double tileX = (relX / halfW + relY / halfH) / 2.0;
+      double tileY = (relY / halfH - relX / halfW) / 2.0;
+      return {tileX, tileY};
+    };
 
-    // 1. Draw vertical lines (spaced at dx = tileW/2 to align with diagonal intersections)
-    for (double x = baseX; x <= x2; x += dx) {
-      if (x >= x1) {
-        g->drawVLine(grid_color, static_cast<int>(x), y1, spriteBounds.h);
-      }
+    auto tileToScreen = [&](double tx, double ty) -> std::pair<double, double> {
+      double screenX = originX + (tx - ty) * halfW;
+      double screenY = originY + (tx + ty) * halfH;
+      return {screenX, screenY};
+    };
+
+    // Find the range of tiles visible on screen
+    auto [t1x, t1y] = screenToTile(screenX1, screenY1);  // Top-left
+    auto [t2x, t2y] = screenToTile(screenX2, screenY1);  // Top-right
+    auto [t3x, t3y] = screenToTile(screenX1, screenY2);  // Bottom-left
+    auto [t4x, t4y] = screenToTile(screenX2, screenY2);  // Bottom-right
+
+    int minTileX = static_cast<int>(std::floor(std::min({t1x, t2x, t3x, t4x}))) - 2;
+    int maxTileX = static_cast<int>(std::ceil(std::max({t1x, t2x, t3x, t4x}))) + 2;
+    int minTileY = static_cast<int>(std::floor(std::min({t1y, t2y, t3y, t4y}))) - 2;
+    int maxTileY = static_cast<int>(std::ceil(std::max({t1y, t2y, t3y, t4y}))) + 2;
+
+    // Safeguard: limit maximum number of tiles to prevent performance issues
+    // with very small tile sizes. Max 10000 tiles (100x100 reasonable limit).
+    const int maxTiles = 10000;
+    const int tileCountX = maxTileX - minTileX + 1;
+    const int tileCountY = maxTileY - minTileY + 1;
+    if (static_cast<long long>(tileCountX) * tileCountY > maxTiles) {
+      // Too many tiles - skip drawing isometric grid
+      // (will appear as no grid, user should increase tile size)
+      return;
     }
 
-    // Calculate how far diagonals can extend
-    const double maxExtent = (x2 - x1) + (y2 - y1) * (dx / dy);
+    // Draw diamond edges for each tile
+    // A diamond tile at (tx, ty) has vertices at:
+    //   Top:    tileToScreen(tx, ty)
+    //   Right:  tileToScreen(tx+1, ty)  
+    //   Bottom: tileToScreen(tx+1, ty+1)
+    //   Left:   tileToScreen(tx, ty+1)
+    
+    // Draw vertical lines through diamond vertices for additional snap points
+    constexpr bool kShowVerticalLines = true;
+    
+    for (int ty = minTileY; ty <= maxTileY; ++ty) {
+      for (int tx = minTileX; tx <= maxTileX; ++tx) {
+        // Get vertices of this diamond tile
+        auto [topX, topY] = tileToScreen(tx, ty);
+        auto [rightX, rightY] = tileToScreen(tx + 1, ty);
+        auto [bottomX, bottomY] = tileToScreen(tx + 1, ty + 1);
 
-    // 2. Draw / lines (going from lower-left to upper-right)
-    // Line equation: as we go right by dx, we go up by dy
-    // These lines pass through points (baseX + n*tileW, baseY) for integer n
-    for (double lineX = baseX - maxExtent; lineX <= x2 + maxExtent; lineX += tileW) {
-      // This / line passes through (lineX, baseY)
-      // Calculate intersection with canvas edges
-      
-      // At y = y2 (bottom): x = lineX - (y2 - baseY) * dx / dy
-      double bottomX = lineX - (y2 - baseY) * dx / dy;
-      double bottomY = y2;
-      
-      // At y = y1 (top): x = lineX + (baseY - y1) * dx / dy
-      double topX = lineX + (baseY - y1) * dx / dy;
-      double topY = y1;
-      
-      // Only draw if line intersects visible area
-      if (topX >= x1 - tileW && bottomX <= x2 + tileW) {
-        g->drawLine(grid_color, 
-                    gfx::Point(static_cast<int>(bottomX), static_cast<int>(bottomY)),
-                    gfx::Point(static_cast<int>(topX), static_cast<int>(topY)));
-      }
-    }
-
-    // 3. Draw \\ lines (going from upper-left to lower-right)
-    // Line equation: as we go right by dx, we go down by dy
-    // These lines pass through points (baseX + n*tileW, baseY) for integer n
-    for (double lineX = baseX - maxExtent; lineX <= x2 + maxExtent; lineX += tileW) {
-      // This \ line passes through (lineX, baseY)
-      // Calculate intersection with canvas edges
-      
-      // At y = y1 (top): x = lineX - (baseY - y1) * dx / dy
-      double topX = lineX - (baseY - y1) * dx / dy;
-      double topY = y1;
-      
-      // At y = y2 (bottom): x = lineX + (y2 - baseY) * dx / dy
-      double bottomX = lineX + (y2 - baseY) * dx / dy;
-      double bottomY = y2;
-      
-      // Only draw if line intersects visible area
-      if (bottomX >= x1 - tileW && topX <= x2 + tileW) {
+        // Draw 2 edges per tile (right side only, left/top shared with neighbors)
         g->drawLine(grid_color,
                     gfx::Point(static_cast<int>(topX), static_cast<int>(topY)),
+                    gfx::Point(static_cast<int>(rightX), static_cast<int>(rightY)));
+
+        g->drawLine(grid_color,
+                    gfx::Point(static_cast<int>(rightX), static_cast<int>(rightY)),
                     gfx::Point(static_cast<int>(bottomX), static_cast<int>(bottomY)));
+
+        // Draw vertical line at this vertex position
+        if (kShowVerticalLines) {
+          g->drawVLine(grid_color, static_cast<int>(topX), screenY1, spriteBounds.h);
+        }
       }
     }
   }
