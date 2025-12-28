@@ -1217,6 +1217,10 @@ void Editor::drawGrid(Graphics* g,
   }
 }
 
+namespace {
+constexpr int kMaxIsometricTilesToRender = 10000;
+}
+
 void Editor::drawIsometricGrid(Graphics* g,
                                const gfx::Rect& spriteBounds,
                                const gfx::RectF& gridF,
@@ -1280,8 +1284,8 @@ void Editor::drawIsometricGrid(Graphics* g,
   int maxTileY = static_cast<int>(std::ceil(std::max({ t1y, t2y, t3y, t4y }))) + 2;
 
   // Safeguard: limit maximum number of tiles to prevent performance issues
-  // with very small tile sizes. Max 10000 tiles (100x100 reasonable limit).
-  const int maxTiles = 10000;
+  // with very small tile sizes.
+  const int maxTiles = kMaxIsometricTilesToRender;
   const int tileCountX = maxTileX - minTileX + 1;
   const int tileCountY = maxTileY - minTileY + 1;
   if (static_cast<long long>(tileCountX) * tileCountY > maxTiles) {
