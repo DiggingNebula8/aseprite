@@ -11,15 +11,98 @@
 
 #include "app/snap_to_grid.h"
 
+#include "app/pref/preferences.h"
 #include "gfx/point.h"
 #include "gfx/rect.h"
 
+#include <cmath>
 #include <cstdlib>
 
 namespace app {
 
-gfx::Point snap_to_grid(const gfx::Rect& grid, const gfx::Point& point, const PreferSnapTo prefer)
+// Helper function for isometric grid snapping using diamond projection.
+// Based on Clint Bellanger's "Isometric Tiles Math":
+//   https://clintbellanger.net/articles/isometric_math/
+//
+// Diamond projection formulas:
+//   screen.x = (tile.x - tile.y) * (TILE_WIDTH / 2)
+//   screen.y = (tile.x + tile.y) * (TILE_HEIGHT / 2)
+//
+// Inverse (screen to tile):
+//   tile.x = (screen.x / halfW + screen.y / halfH) / 2
+//   tile.y = (screen.y / halfH - screen.x / halfW) / 2
+//
+// Works with any width/height ratio:
+//   - 2:1 ratio (e.g., 32x16) = standard isometric (~26.57°)
+//   - Other ratios create dimetric projections
+static gfx::Point snap_to_isometric_grid(const gfx::Rect& grid,
+                                         const gfx::Point& point,
+                                         const PreferSnapTo prefer)
 {
+  if (grid.isEmpty())
+    return point;
+
+  const double tileW = grid.w; // Diamond width
+  const double tileH = grid.h; // Diamond height
+  const double halfW = tileW / 2.0;
+  const double halfH = tileH / 2.0;
+
+  // Grid origin in screen coordinates
+  const double originX = grid.x;
+  const double originY = grid.y;
+
+  // Convert screen point to tile coordinates (relative to origin)
+  const double relX = point.x - originX;
+  const double relY = point.y - originY;
+  // Screen to tile transformation (inverse of diamond projection)
+  const double tileXf = (relX / halfW + relY / halfH) / 2.0;
+  const double tileYf = (relY / halfH - relX / halfW) / 2.0;
+
+  // Calculate tile coordinates based on snap preference
+  int tileX, tileY;
+  switch (prefer) {
+    case PreferSnapTo::ClosestGridVertex:
+    default:
+      // Round to nearest tile coordinate (diamond vertex)
+      tileX = static_cast<int>(std::round(tileXf));
+      tileY = static_cast<int>(std::round(tileYf));
+      break;
+
+    case PreferSnapTo::BoxOrigin:
+    case PreferSnapTo::FloorGrid:
+      // Floor to get the tile containing the point (top-left of bounding box)
+      tileX = static_cast<int>(std::floor(tileXf));
+      tileY = static_cast<int>(std::floor(tileYf));
+      break;
+
+    case PreferSnapTo::BoxEnd:
+    case PreferSnapTo::CeilGrid:
+      // Ceil to get the next tile boundary (bottom-right of bounding box)
+      tileX = static_cast<int>(std::ceil(tileXf));
+      tileY = static_cast<int>(std::ceil(tileYf));
+      break;
+  }
+
+  // Convert back to screen coordinates (tile to screen transformation)
+  const double snapX = originX + (tileX - tileY) * halfW;
+  const double snapY = originY + (tileX + tileY) * halfH;
+
+  gfx::Point bestSnap(static_cast<int>(std::round(snapX)), static_cast<int>(std::round(snapY)));
+
+  return bestSnap;
+}
+
+gfx::Point snap_to_grid(const gfx::Rect& grid,
+                        const gfx::Point& point,
+                        const PreferSnapTo prefer,
+                        const gen::GridType gridType)
+{
+  // For isometric grid, use specialized snapping
+  if (gridType == gen::GridType::ISOMETRIC) {
+    return snap_to_isometric_grid(grid, point, prefer);
+  }
+
+  // Original rectangular grid snapping
   if (grid.isEmpty())
     return point;
 

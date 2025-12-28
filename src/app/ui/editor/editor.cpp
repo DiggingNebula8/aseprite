@@ -1203,6 +1203,197 @@ void Editor::drawGrid(Graphics* g,
   grid_color =
     gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), alpha);
 
+  // Check grid type for isometric rendering
+  // Note: Pixel Grid (1×1) should always be rectangular regardless of grid type setting
+  // We check the original grid size (before projection), not gridF which is screen-scaled
+  const bool isPixelGrid = (grid.w <= 1 && grid.h <= 1);
+  const bool isIsometric = !isPixelGrid && (m_docPref.grid.type() == gen::GridType::ISOMETRIC);
+
+  if (isIsometric) {
+    drawIsometricGrid(g, spriteBounds, gridF, grid_color);
+  }
+  else {
+    drawRectangularGrid(g, spriteBounds, gridF, grid_color);
+  }
+}
+
+namespace {
+constexpr int kTileRenderBuffer = 1;
+}
+
+void Editor::drawIsometricGrid(Graphics* g,
+                               const gfx::Rect& spriteBounds,
+                               const gfx::RectF& gridF,
+                               gfx::Color grid_color)
+{
+  // Optimized isometric grid rendering using parallel diagonal lines.
+  // Instead of drawing edges for each tile (O(n²)), we draw two sets of
+  // parallel diagonal lines (O(n)), which is much faster for large grids.
+  //
+  // Based on Clint Bellanger's "Isometric Tiles Math":
+  //   https://clintbellanger.net/articles/isometric_math/
+  //
+  // Diamond tiles have two edge directions:
+  //   1. Constant tile.x lines: direction (-halfW, +halfH), going down-left
+  //   2. Constant tile.y lines: direction (+halfW, +halfH), going down-right
+
+  const double halfW = gridF.w / 2.0;
+  const double halfH = gridF.h / 2.0;
+
+  if (halfW < 1.0 || halfH < 1.0)
+    return;
+
+  const double screenX1 = spriteBounds.x;
+  const double screenY1 = spriteBounds.y;
+  const double screenX2 = spriteBounds.x + spriteBounds.w;
+  const double screenY2 = spriteBounds.y + spriteBounds.h;
+
+  // Grid origin in screen coordinates
+  const double originX = gridF.x;
+  const double originY = gridF.y;
+
+  // Helper to clip a line segment to vertical screen bounds and draw it.
+  // Takes line endpoints already clipped to horizontal bounds (screenX1, screenX2).
+  auto clipAndDrawLine = [&](double lx1, double ly1, double lx2, double ly2) {
+    // Ensure ly1 <= ly2 for consistent clipping
+    if (ly1 > ly2) {
+      std::swap(lx1, lx2);
+      std::swap(ly1, ly2);
+    }
+
+    // Skip if completely outside vertical bounds
+    if (ly2 < screenY1 || ly1 > screenY2)
+      return;
+
+    // Clip to vertical bounds using parametric form
+    double dx = lx2 - lx1;
+    double dy = ly2 - ly1;
+
+    // Handle horizontal lines (dy == 0)
+    if (dy == 0) {
+      // Line is horizontal - just check if it's visible
+      if (ly1 >= screenY1 && ly1 <= screenY2) {
+        g->drawLine(grid_color,
+                    gfx::Point(static_cast<int>(lx1), static_cast<int>(ly1)),
+                    gfx::Point(static_cast<int>(lx2), static_cast<int>(ly2)));
+      }
+      return;
+    }
+
+    // Clip to top edge
+    if (ly1 < screenY1) {
+      double t = (screenY1 - ly1) / dy;
+      lx1 = lx1 + t * dx;
+      ly1 = screenY1;
+    }
+    // Clip to bottom edge
+    if (ly2 > screenY2) {
+      double t = (screenY2 - ly1) / dy;
+      lx2 = lx1 + t * dx;
+      ly2 = screenY2;
+    }
+
+    g->drawLine(grid_color,
+                gfx::Point(static_cast<int>(lx1), static_cast<int>(ly1)),
+                gfx::Point(static_cast<int>(lx2), static_cast<int>(ly2)));
+  };
+
+  // --- Draw constant tile.x lines (going down-left: -halfW, +halfH) ---
+  // For a vertex at tile (tx, ty), screen position is:
+  //   x = originX + (tx - ty) * halfW
+  //   y = originY + (tx + ty) * halfH
+  // As ty increases by 1: x decreases by halfW, y increases by halfH
+
+  auto screenToTileX = [&](double sx, double sy) -> double {
+    double relX = sx - originX;
+    double relY = sy - originY;
+    return (relX / halfW + relY / halfH) / 2.0;
+  };
+
+  double txMin = std::min({ screenToTileX(screenX1, screenY1),
+                            screenToTileX(screenX2, screenY1),
+                            screenToTileX(screenX1, screenY2),
+                            screenToTileX(screenX2, screenY2) });
+  double txMax = std::max({ screenToTileX(screenX1, screenY1),
+                            screenToTileX(screenX2, screenY1),
+                            screenToTileX(screenX1, screenY2),
+                            screenToTileX(screenX2, screenY2) });
+
+  int txStart = static_cast<int>(std::floor(txMin)) - kTileRenderBuffer;
+  int txEnd = static_cast<int>(std::ceil(txMax)) + kTileRenderBuffer;
+
+  for (int tx = txStart; tx <= txEnd; ++tx) {
+    // Find intersection with vertical screen edges
+    // At x = screenX1: ty = tx - (screenX1 - originX) / halfW
+    double ty_at_x1 = tx - (screenX1 - originX) / halfW;
+    double y_at_x1 = originY + (tx + ty_at_x1) * halfH;
+
+    // At x = screenX2: ty = tx - (screenX2 - originX) / halfW
+    double ty_at_x2 = tx - (screenX2 - originX) / halfW;
+    double y_at_x2 = originY + (tx + ty_at_x2) * halfH;
+
+    // Line from (screenX2, y_at_x2) to (screenX1, y_at_x1)
+    clipAndDrawLine(screenX2, y_at_x2, screenX1, y_at_x1);
+  }
+
+  // --- Draw constant tile.y lines (going down-right: +halfW, +halfH) ---
+  // As tx increases by 1: x increases by halfW, y increases by halfH
+
+  auto screenToTileY = [&](double sx, double sy) -> double {
+    double relX = sx - originX;
+    double relY = sy - originY;
+    return (relY / halfH - relX / halfW) / 2.0;
+  };
+
+  double tyMin = std::min({ screenToTileY(screenX1, screenY1),
+                            screenToTileY(screenX2, screenY1),
+                            screenToTileY(screenX1, screenY2),
+                            screenToTileY(screenX2, screenY2) });
+  double tyMax = std::max({ screenToTileY(screenX1, screenY1),
+                            screenToTileY(screenX2, screenY1),
+                            screenToTileY(screenX1, screenY2),
+                            screenToTileY(screenX2, screenY2) });
+
+  int tyStart = static_cast<int>(std::floor(tyMin)) - kTileRenderBuffer;
+  int tyEnd = static_cast<int>(std::ceil(tyMax)) + kTileRenderBuffer;
+
+  for (int ty = tyStart; ty <= tyEnd; ++ty) {
+    // Find intersection with vertical screen edges
+    // At x = screenX1: tx = ty + (screenX1 - originX) / halfW
+    double tx_at_x1 = ty + (screenX1 - originX) / halfW;
+    double y_at_x1 = originY + (tx_at_x1 + ty) * halfH;
+
+    // At x = screenX2: tx = ty + (screenX2 - originX) / halfW
+    double tx_at_x2 = ty + (screenX2 - originX) / halfW;
+    double y_at_x2 = originY + (tx_at_x2 + ty) * halfH;
+
+    // Line from (screenX1, y_at_x1) to (screenX2, y_at_x2)
+    clipAndDrawLine(screenX1, y_at_x1, screenX2, y_at_x2);
+  }
+
+  // Draw vertical lines
+  // Vertical line opacity from grid settings (0-255), setting to 0 disables them
+  const int verticalAlpha = m_docPref.grid.isometricVerticalOpacity();
+  if (verticalAlpha > 0) {
+    gfx::Color vertical_color =
+      gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), verticalAlpha);
+
+    int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - kTileRenderBuffer;
+    int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + kTileRenderBuffer;
+    for (int k = minK; k <= maxK; ++k) {
+      int vx = static_cast<int>(std::round(originX + k * halfW));
+      if (vx >= screenX1 && vx <= screenX2) {
+        g->drawVLine(vertical_color, vx, screenY1, spriteBounds.h);
+      }
+    }
+  }
+}
+
+void Editor::drawRectangularGrid(Graphics* g,
+                                 const gfx::Rect& spriteBounds,
+                                 const gfx::RectF& gridF,
+                                 gfx::Color grid_color)
+{
   // Draw horizontal lines
   int x1 = spriteBounds.x;
   int y1 = gridF.y;
@@ -2890,7 +3081,10 @@ void Editor::pasteImage(const Image* image, const Mask* mask, const gfx::Point* 
   // TODO should we move this to PixelsMovement or MovingPixelsState?
   if (site.tilemapMode() == TilemapMode::Tiles) {
     gfx::Rect gridBounds = site.gridBounds();
-    gfx::Point pt = snap_to_grid(gridBounds, gfx::Point(x, y), PreferSnapTo::ClosestGridVertex);
+    gfx::Point pt = snap_to_grid(gridBounds,
+                                 gfx::Point(x, y),
+                                 PreferSnapTo::ClosestGridVertex,
+                                 gen::GridType::RECTANGULAR);
     x = pt.x;
     y = pt.y;
   }

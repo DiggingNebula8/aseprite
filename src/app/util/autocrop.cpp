@@ -11,6 +11,7 @@
 
 #include "app/util/autocrop.h"
 
+#include "app/pref/preferences.h"
 #include "app/snap_to_grid.h"
 #include "doc/algorithm/shrink_bounds.h"
 #include "doc/image.h"
@@ -260,8 +261,14 @@ gfx::Rect get_trimmed_bounds(const doc::Sprite* sprite, const bool byGrid)
     // TODO merge this code with the code in DocExporter::captureSamples()
     if (byGrid) {
       const gfx::Rect& gridBounds = sprite->gridBounds();
-      gfx::Point posTopLeft = snap_to_grid(gridBounds, bounds.origin(), PreferSnapTo::FloorGrid);
-      gfx::Point posBottomRight = snap_to_grid(gridBounds, bounds.point2(), PreferSnapTo::CeilGrid);
+      gfx::Point posTopLeft = snap_to_grid(gridBounds,
+                                           bounds.origin(),
+                                           PreferSnapTo::FloorGrid,
+                                           gen::GridType::RECTANGULAR);
+      gfx::Point posBottomRight = snap_to_grid(gridBounds,
+                                               bounds.point2(),
+                                               PreferSnapTo::CeilGrid,
+                                               gen::GridType::RECTANGULAR);
       bounds = gfx::Rect(posTopLeft, posBottomRight);
     }
   }

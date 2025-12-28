@@ -13,6 +13,10 @@
 
 namespace app {
 
+namespace gen {
+enum class GridType;
+}
+
 enum class PreferSnapTo {
   ClosestGridVertex,
   BoxOrigin,
@@ -21,7 +25,10 @@ enum class PreferSnapTo {
   CeilGrid,
 };
 
-gfx::Point snap_to_grid(const gfx::Rect& grid, const gfx::Point& point, const PreferSnapTo prefer);
+gfx::Point snap_to_grid(const gfx::Rect& grid,
+                        const gfx::Point& point,
+                        const PreferSnapTo prefer,
+                        const gen::GridType gridType);
 
 } // namespace app
 
