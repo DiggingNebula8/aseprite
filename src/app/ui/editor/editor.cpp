@@ -1217,111 +1217,157 @@ void Editor::drawGrid(Graphics* g,
   }
 }
 
-namespace {
-constexpr int kMaxIsometricTilesToRender = 10000;
-}
-
 void Editor::drawIsometricGrid(Graphics* g,
                                const gfx::Rect& spriteBounds,
                                const gfx::RectF& gridF,
                                gfx::Color grid_color)
 {
-  // Isometric grid rendering using diamond projection.
+  // Optimized isometric grid rendering using parallel diagonal lines.
+  // Instead of drawing edges for each tile (O(n²)), we draw two sets of
+  // parallel diagonal lines (O(n)), which is much faster for large grids.
+  //
   // Based on Clint Bellanger's "Isometric Tiles Math":
   //   https://clintbellanger.net/articles/isometric_math/
   //
-  // Diamond projection formulas:
-  //   screen.x = (tile.x - tile.y) * (TILE_WIDTH / 2)
-  //   screen.y = (tile.x + tile.y) * (TILE_HEIGHT / 2)
-  //
-  // This creates a diamond-shaped tile where:
-  //   - TILE_WIDTH controls horizontal span of the diamond
-  //   - TILE_HEIGHT controls vertical span
-  //   - 2:1 ratio (e.g., 32x16) gives standard isometric (~26.57°)
-  //   - Any ratio works, creating different projection angles
+  // Diamond tiles have two edge directions:
+  //   1. Constant tile.x lines: direction (-halfW, +halfH), going down-left
+  //   2. Constant tile.y lines: direction (+halfW, +halfH), going down-right
 
-  const double tileW = gridF.w; // Diamond width
-  const double tileH = gridF.h; // Diamond height
-  const double halfW = tileW / 2.0;
-  const double halfH = tileH / 2.0;
+  const double halfW = gridF.w / 2.0;
+  const double halfH = gridF.h / 2.0;
+
+  if (halfW < 1.0 || halfH < 1.0)
+    return;
 
   const double screenX1 = spriteBounds.x;
   const double screenY1 = spriteBounds.y;
   const double screenX2 = spriteBounds.x + spriteBounds.w;
   const double screenY2 = spriteBounds.y + spriteBounds.h;
 
-  // Find grid origin in screen coordinates
+  // Grid origin in screen coordinates
   const double originX = gridF.x;
   const double originY = gridF.y;
 
-  // Calculate tile coordinate range needed to cover visible area
-  // Using inverse transformation: screen -> tile
-  //   tile.x = (screen.x / halfW + screen.y / halfH) / 2
-  //   tile.y = (screen.y / halfH - screen.x / halfW) / 2
-  auto screenToTile = [&](double sx, double sy) -> std::pair<double, double> {
+  // Helper to clip a line segment to vertical screen bounds and draw it.
+  // Takes line endpoints already clipped to horizontal bounds (screenX1, screenX2).
+  auto clipAndDrawLine = [&](double lx1, double ly1, double lx2, double ly2) {
+    // Ensure ly1 <= ly2 for consistent clipping
+    if (ly1 > ly2) {
+      std::swap(lx1, lx2);
+      std::swap(ly1, ly2);
+    }
+
+    // Skip if completely outside vertical bounds
+    if (ly2 < screenY1 || ly1 > screenY2)
+      return;
+
+    // Clip to vertical bounds using parametric form
+    double dx = lx2 - lx1;
+    double dy = ly2 - ly1;
+
+    // Handle horizontal lines (dy == 0)
+    if (dy == 0) {
+      // Line is horizontal - just check if it's visible
+      if (ly1 >= screenY1 && ly1 <= screenY2) {
+        g->drawLine(grid_color,
+                    gfx::Point(static_cast<int>(lx1), static_cast<int>(ly1)),
+                    gfx::Point(static_cast<int>(lx2), static_cast<int>(ly2)));
+      }
+      return;
+    }
+
+    // Clip to top edge
+    if (ly1 < screenY1) {
+      double t = (screenY1 - ly1) / dy;
+      lx1 = lx1 + t * dx;
+      ly1 = screenY1;
+    }
+    // Clip to bottom edge
+    if (ly2 > screenY2) {
+      double t = (screenY2 - ly1) / dy;
+      lx2 = lx1 + t * dx;
+      ly2 = screenY2;
+    }
+
+    g->drawLine(grid_color,
+                gfx::Point(static_cast<int>(lx1), static_cast<int>(ly1)),
+                gfx::Point(static_cast<int>(lx2), static_cast<int>(ly2)));
+  };
+
+  // --- Draw constant tile.x lines (going down-left: -halfW, +halfH) ---
+  // For a vertex at tile (tx, ty), screen position is:
+  //   x = originX + (tx - ty) * halfW
+  //   y = originY + (tx + ty) * halfH
+  // As ty increases by 1: x decreases by halfW, y increases by halfH
+
+  auto screenToTileX = [&](double sx, double sy) -> double {
     double relX = sx - originX;
     double relY = sy - originY;
-    double tileX = (relX / halfW + relY / halfH) / 2.0;
-    double tileY = (relY / halfH - relX / halfW) / 2.0;
-    return { tileX, tileY };
+    return (relX / halfW + relY / halfH) / 2.0;
   };
 
-  auto tileToScreen = [&](double tx, double ty) -> std::pair<double, double> {
-    double screenX = originX + (tx - ty) * halfW;
-    double screenY = originY + (tx + ty) * halfH;
-    return { screenX, screenY };
+  double txMin = std::min({ screenToTileX(screenX1, screenY1),
+                            screenToTileX(screenX2, screenY1),
+                            screenToTileX(screenX1, screenY2),
+                            screenToTileX(screenX2, screenY2) });
+  double txMax = std::max({ screenToTileX(screenX1, screenY1),
+                            screenToTileX(screenX2, screenY1),
+                            screenToTileX(screenX1, screenY2),
+                            screenToTileX(screenX2, screenY2) });
+
+  int txStart = static_cast<int>(std::floor(txMin)) - 1;
+  int txEnd = static_cast<int>(std::ceil(txMax)) + 1;
+
+  for (int tx = txStart; tx <= txEnd; ++tx) {
+    // Find intersection with vertical screen edges
+    // At x = screenX1: ty = tx - (screenX1 - originX) / halfW
+    double ty_at_x1 = tx - (screenX1 - originX) / halfW;
+    double y_at_x1 = originY + (tx + ty_at_x1) * halfH;
+
+    // At x = screenX2: ty = tx - (screenX2 - originX) / halfW
+    double ty_at_x2 = tx - (screenX2 - originX) / halfW;
+    double y_at_x2 = originY + (tx + ty_at_x2) * halfH;
+
+    // Line from (screenX2, y_at_x2) to (screenX1, y_at_x1)
+    clipAndDrawLine(screenX2, y_at_x2, screenX1, y_at_x1);
+  }
+
+  // --- Draw constant tile.y lines (going down-right: +halfW, +halfH) ---
+  // As tx increases by 1: x increases by halfW, y increases by halfH
+
+  auto screenToTileY = [&](double sx, double sy) -> double {
+    double relX = sx - originX;
+    double relY = sy - originY;
+    return (relY / halfH - relX / halfW) / 2.0;
   };
 
-  // Find the range of tiles visible on screen
-  auto [t1x, t1y] = screenToTile(screenX1, screenY1); // Top-left
-  auto [t2x, t2y] = screenToTile(screenX2, screenY1); // Top-right
-  auto [t3x, t3y] = screenToTile(screenX1, screenY2); // Bottom-left
-  auto [t4x, t4y] = screenToTile(screenX2, screenY2); // Bottom-right
+  double tyMin = std::min({ screenToTileY(screenX1, screenY1),
+                            screenToTileY(screenX2, screenY1),
+                            screenToTileY(screenX1, screenY2),
+                            screenToTileY(screenX2, screenY2) });
+  double tyMax = std::max({ screenToTileY(screenX1, screenY1),
+                            screenToTileY(screenX2, screenY1),
+                            screenToTileY(screenX1, screenY2),
+                            screenToTileY(screenX2, screenY2) });
 
-  int minTileX = static_cast<int>(std::floor(std::min({ t1x, t2x, t3x, t4x }))) - 2;
-  int maxTileX = static_cast<int>(std::ceil(std::max({ t1x, t2x, t3x, t4x }))) + 2;
-  int minTileY = static_cast<int>(std::floor(std::min({ t1y, t2y, t3y, t4y }))) - 2;
-  int maxTileY = static_cast<int>(std::ceil(std::max({ t1y, t2y, t3y, t4y }))) + 2;
+  int tyStart = static_cast<int>(std::floor(tyMin)) - 1;
+  int tyEnd = static_cast<int>(std::ceil(tyMax)) + 1;
 
-  // Safeguard: limit maximum number of tiles to prevent performance issues
-  // with very small tile sizes.
-  const int maxTiles = kMaxIsometricTilesToRender;
-  const int tileCountX = maxTileX - minTileX + 1;
-  const int tileCountY = maxTileY - minTileY + 1;
-  if (static_cast<long long>(tileCountX) * tileCountY > maxTiles) {
-    // Too many tiles - skip drawing isometric grid
-    // (will appear as no grid, user should increase tile size)
-    return;
+  for (int ty = tyStart; ty <= tyEnd; ++ty) {
+    // Find intersection with vertical screen edges
+    // At x = screenX1: tx = ty + (screenX1 - originX) / halfW
+    double tx_at_x1 = ty + (screenX1 - originX) / halfW;
+    double y_at_x1 = originY + (tx_at_x1 + ty) * halfH;
+
+    // At x = screenX2: tx = ty + (screenX2 - originX) / halfW
+    double tx_at_x2 = ty + (screenX2 - originX) / halfW;
+    double y_at_x2 = originY + (tx_at_x2 + ty) * halfH;
+
+    // Line from (screenX1, y_at_x1) to (screenX2, y_at_x2)
+    clipAndDrawLine(screenX1, y_at_x1, screenX2, y_at_x2);
   }
 
-  // Draw diamond edges for each tile
-  // A diamond tile at (tx, ty) has vertices at:
-  //   Top:    tileToScreen(tx, ty)
-  //   Right:  tileToScreen(tx+1, ty)
-  //   Bottom: tileToScreen(tx+1, ty+1)
-  //   Left:   tileToScreen(tx, ty+1)
-
-  // Draw diamond edges for each tile
-  for (int ty = minTileY; ty <= maxTileY; ++ty) {
-    for (int tx = minTileX; tx <= maxTileX; ++tx) {
-      // Get vertices of this diamond tile
-      auto [topX, topY] = tileToScreen(tx, ty);
-      auto [rightX, rightY] = tileToScreen(tx + 1, ty);
-      auto [bottomX, bottomY] = tileToScreen(tx + 1, ty + 1);
-
-      // Draw 2 edges per tile (right side only, left/top shared with neighbors)
-      g->drawLine(grid_color,
-                  gfx::Point(static_cast<int>(topX), static_cast<int>(topY)),
-                  gfx::Point(static_cast<int>(rightX), static_cast<int>(rightY)));
-
-      g->drawLine(grid_color,
-                  gfx::Point(static_cast<int>(rightX), static_cast<int>(rightY)),
-                  gfx::Point(static_cast<int>(bottomX), static_cast<int>(bottomY)));
-    }
-  }
-
-  // Draw vertical lines ONCE per unique X position (optimized - avoids overdraw)
-  // Vertical lines occur at X = originX + k * halfW for integer k
+  // Draw vertical lines
   // Vertical line opacity from grid settings (0-255), setting to 0 disables them
   const int verticalAlpha = m_docPref.grid.isometricVerticalOpacity();
   if (verticalAlpha > 0) {
