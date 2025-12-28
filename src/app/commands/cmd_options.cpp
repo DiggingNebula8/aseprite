@@ -337,6 +337,8 @@ public:
       if (gridH()->textInt() <= 0)
         gridH()->setText("1");
     });
+    // Show/hide Y Opacity based on grid type
+    gridType()->Change.connect([this] { updateIsoVerticalOpacityVisibility(); });
 
     // Timeline
     resetTimelineSel()->Click.connect([this] { onResetTimelineSel(); });
@@ -1583,11 +1585,14 @@ private:
     gridColor()->setColor(m_curPref->grid.color());
     gridOpacity()->setValue(m_curPref->grid.opacity());
     gridAutoOpacity()->setSelected(m_curPref->grid.autoOpacity());
+    isoVerticalOpacity()->setValue(m_curPref->grid.isometricVerticalOpacity());
 
     pixelGridVisible()->setSelected(m_curPref->show.pixelGrid());
     pixelGridColor()->setColor(m_curPref->pixelGrid.color());
     pixelGridOpacity()->setValue(m_curPref->pixelGrid.opacity());
     pixelGridAutoOpacity()->setSelected(m_curPref->pixelGrid.autoOpacity());
+
+    updateIsoVerticalOpacityVisibility();
   }
 
   void onResetBg()
@@ -1628,6 +1633,7 @@ private:
       gridColor()->setColor(pref.grid.color.defaultValue());
       gridOpacity()->setValue(pref.grid.opacity.defaultValue());
       gridAutoOpacity()->setSelected(pref.grid.autoOpacity.defaultValue());
+      isoVerticalOpacity()->setValue(pref.grid.isometricVerticalOpacity.defaultValue());
 
       pixelGridVisible()->setSelected(pref.show.pixelGrid.defaultValue());
       pixelGridColor()->setColor(pref.pixelGrid.color.defaultValue());
@@ -1653,6 +1659,7 @@ private:
       pixelGridOpacity()->setValue(pref.pixelGrid.opacity());
       pixelGridAutoOpacity()->setSelected(pref.pixelGrid.autoOpacity());
     }
+    updateIsoVerticalOpacityVisibility();
   }
 
   void onLocateCrashFolder()
@@ -1672,6 +1679,14 @@ private:
       undoSizeLimit()->setEnabled(false);
       undoSizeLimit()->setText(kInfiniteSymbol);
     }
+  }
+
+  void updateIsoVerticalOpacityVisibility()
+  {
+    bool isIsometric = gridType()->getSelectedItemIndex() == int(app::gen::GridType::ISOMETRIC);
+    isoVerticalOpacityLabel()->setVisible(isIsometric);
+    isoVerticalOpacity()->setVisible(isIsometric);
+    sectionGrid()->layout();
   }
 
   void refillLanguages()
