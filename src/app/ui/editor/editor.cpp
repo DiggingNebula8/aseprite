@@ -1217,6 +1217,10 @@ void Editor::drawGrid(Graphics* g,
   }
 }
 
+namespace {
+constexpr int kTileRenderBuffer = 1;
+}
+
 void Editor::drawIsometricGrid(Graphics* g,
                                const gfx::Rect& spriteBounds,
                                const gfx::RectF& gridF,
@@ -1315,8 +1319,8 @@ void Editor::drawIsometricGrid(Graphics* g,
                             screenToTileX(screenX1, screenY2),
                             screenToTileX(screenX2, screenY2) });
 
-  int txStart = static_cast<int>(std::floor(txMin)) - 1;
-  int txEnd = static_cast<int>(std::ceil(txMax)) + 1;
+  int txStart = static_cast<int>(std::floor(txMin)) - kTileRenderBuffer;
+  int txEnd = static_cast<int>(std::ceil(txMax)) + kTileRenderBuffer;
 
   for (int tx = txStart; tx <= txEnd; ++tx) {
     // Find intersection with vertical screen edges
@@ -1350,8 +1354,8 @@ void Editor::drawIsometricGrid(Graphics* g,
                             screenToTileY(screenX1, screenY2),
                             screenToTileY(screenX2, screenY2) });
 
-  int tyStart = static_cast<int>(std::floor(tyMin)) - 1;
-  int tyEnd = static_cast<int>(std::ceil(tyMax)) + 1;
+  int tyStart = static_cast<int>(std::floor(tyMin)) - kTileRenderBuffer;
+  int tyEnd = static_cast<int>(std::ceil(tyMax)) + kTileRenderBuffer;
 
   for (int ty = tyStart; ty <= tyEnd; ++ty) {
     // Find intersection with vertical screen edges
@@ -1374,8 +1378,8 @@ void Editor::drawIsometricGrid(Graphics* g,
     gfx::Color vertical_color =
       gfx::rgba(gfx::getr(grid_color), gfx::getg(grid_color), gfx::getb(grid_color), verticalAlpha);
 
-    int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - 1;
-    int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + 1;
+    int minK = static_cast<int>(std::floor((screenX1 - originX) / halfW)) - kTileRenderBuffer;
+    int maxK = static_cast<int>(std::ceil((screenX2 - originX) / halfW)) + kTileRenderBuffer;
     for (int k = minK; k <= maxK; ++k) {
       int vx = static_cast<int>(std::round(originX + k * halfW));
       if (vx >= screenX1 && vx <= screenX2) {
