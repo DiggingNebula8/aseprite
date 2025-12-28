@@ -376,6 +376,14 @@ private:
                 const gfx::Rect& gridBounds,
                 const app::Color& color,
                 int alpha);
+  void drawIsometricGrid(ui::Graphics* g,
+                         const gfx::Rect& spriteBounds,
+                         const gfx::RectF& gridF,
+                         gfx::Color grid_color);
+  void drawRectangularGrid(ui::Graphics* g,
+                           const gfx::Rect& spriteBounds,
+                           const gfx::RectF& gridF,
+                           gfx::Color grid_color);
   void drawSlices(ui::Graphics* g);
   void drawTileNumbers(ui::Graphics* g, const Cel* cel);
   void drawCelBounds(ui::Graphics* g, const Cel* cel, const gfx::Color color);
